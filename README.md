@@ -1,3 +1,4 @@
 # turbotin
 Rev Up Your Pipe Tobacco Search!
-![Turbotin logo](https://www.turbotin.com/static/TurboTinLogo.png)
+
+<img src="https://www.turbotin.com/static/TurboTinLogo.png" width="200">
