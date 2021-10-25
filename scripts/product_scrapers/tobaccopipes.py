@@ -15,15 +15,19 @@ def scrape(pbar=None):
         soup = get_html(link.get("href"))
         while True:
             for li in soup.find_all("li", class_="product"):
-                item = li.find("h4", class_="card-title").text.strip()
-                stock = "In stock"
-                if li.find_all("div", class_="outofstock"):
-                    stock = "Out of stock"
-                price = li.find("span", class_="price--withoutTax").text.strip()
-                link = li.find("h4", class_="card-title").find("a").get("href")
-                item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
+                if li.find("h4", class_="card-title"):
+                    link = li.find("a").get("href")
+                    item = li.find("h4", class_="card-title").text.strip()
+                    stock = "In stock"
+                    price = li.find("span", class_="price price--withoutTax").text.strip()
+
+                    if li.find_all("div", class_="outofstock"):
+                        stock = "Out of stock"
+
+                    item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
             if soup.find_all("li", class_="pagination-item--next"):
                 soup = get_html(soup.find("li", class_="pagination-item--next").find("a").get("href"))
             else:
                 break
+
     return data
