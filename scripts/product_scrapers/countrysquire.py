@@ -17,14 +17,18 @@ def scrape(pbar=None):
                 products_soup = BeautifulSoup(json.loads(products.string), "lxml")
                 for product in products_soup.find_all("li"):
                     item = product.find("h3").text
-                    price = product.find("span", class_="amount").text
-                    stock = "In stock"
+                    if product.find("ins"):
+                        price = product.find("ins").text
+                    else:
+                        if product.find("bdi"):
+                            price = product.find("bdi").text
                     if product.find("div", class_="out-of-stock"):
                         stock = "Out of stock"
                     link = product.find("a").get("href")
                     item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
-        if soup.find("a", class_="next"):
-            new_url = soup.find("a", class_="next").get("href")
+
+        if soup.find("a", class_="next page-numbers"):
+            new_url = soup.find("a", class_="next page-numbers").get("href")
             soup = get_html(new_url)
         else:
             next_page = False
