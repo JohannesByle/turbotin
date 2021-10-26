@@ -9,47 +9,28 @@ def scrape(pbar=None):
     name = "hilandscigars"
     url = "https://hilandscigars.com/product-tag/pipe-tobacco/page/0/"
 
-    page_num = 0
-    while True and page_num < 10:
-        page_num += 1
-        url = url.replace("/" + str(page_num - 1) + "/", "/" + str(page_num) + "/")
-        try:
-            soup = get_html(url)
-        except:
-            break
-        if "Oops! That page can’t be found." in str(soup):
-            break
-        for product in soup.find("ul", class_="products").find_all("li"):
-            main_item = product.find("h3").find("a").get_text()
-            main_link = product.find("h3").find("a").get("href")
-            if product.find(class_="button").get_text() == "Select options":
-                new_soup = get_html(product.find(class_="button").get("href"))
-                json_data = json.loads(new_soup.find("form", class_="variations_form").get("data-product_variations"))
-                for sub_product in json_data:
-                    for n in sub_product["attributes"]:
-                        item = " ".join([main_item, sub_product["attributes"][n]])
-                        break
-                    if sub_product["is_in_stock"]:
-                        stock = "In stock"
-                    else:
-                        stock = "Out of stock"
-                    link = main_link
-                    price = "${:.2f}".format(sub_product["display_price"])
-                    item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
-
-            else:
-                if product.find_all("span", class_="stock-label"):
-                    if product.find("span", class_="stock-label").get_text() == "Out of Stock":
-                        stock = "Out of stock"
-                    else:
-                        stock = product.find("span", class_="stock-label").get_text()
+    soup = get_html(url)
+    next_page = True
+    while next_page:
+        for products in soup.find_all("ul", class_="products"):
+            for product in products.find_all("li", class_="product"):
+                item = product.find("h2").text
+                if product.find("ins"):
+                    price = product.find("ins").text
                 else:
-                    stock = "In stock"
-                item = product.find("h3").find("a").get_text()
-                link = product.find("h3").find("a").get("href")
-                price = product.find(class_="price").get_text()
-                if re.match(r"\$\d{2}\.\d{2} \$\d{2}\.\d{2}", price):
-                    price = re.findall(r"\$\d{2}\.\d{2} (\$\d{2}\.\d{2})", price)[0]
+                    if product.find("bdi"):
+                        price = product.find("bdi").text
+                if product.find("span", class_="price"):
+                    stock = "In Stock"
+                else:
+                    stock = "Out of stock"
+                link = product.find("a").get("href")
                 item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
+
+        if soup.find("a", class_="next page-numbers"):
+            new_url = soup.find("a", class_="next page-numbers").get("href")
+            soup = get_html(new_url)
+        else:
+            next_page = False
 
     return data
