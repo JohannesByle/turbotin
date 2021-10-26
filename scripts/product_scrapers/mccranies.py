@@ -6,35 +6,30 @@ def scrape(pbar=None):
     item, price, stock, link = ["", "", "", ""]
     data = []
     name = "mccranies"
-    url = "http://www.mccranies.com/store/index.php?main_page=index&cPath=2_35"
+    url = "https://mccranies.com/product-category/tin-tobaccos/"
 
     soup = get_html(url)
-    for cat in soup.find_all(class_="categoryListBoxContents"):
-        # print(cat)
-        error = True
-        wait_time = 2.75
-        while error:
-            try:
-                new_soup = get_html(cat.find("a").get("href"))
-                brand = cat.find("a").get_text().strip()
-                error = False
-            except:
-                time.sleep(wait_time)
-                print("An Error Occurred: sleeping " + str(wait_time) + "s")
-                wait_time = wait_time + 1
-                pass
-        for product in new_soup.find_all("tr", {"class": ["productListing-even", "productListing-odd"]}):
-            # print(product)
-            for element in product.find_all():
-                if element.find("h3", class_="itemTitle"):
-                    item = (brand + " " + element.find("a").get_text())
-                    link = element.find("a").get("href")
-                if element.find_all()[:-1]:
-                    price = element.get_text().strip()
-                if element.find("img", class_="listingBuyNowButton"):
-                    stock = "In Stock"
-                if stock != "In Stock":
-                    stock = "Out of stock"
+    next_page = True
+    while next_page:
+        for product in soup.find_all("li", class_="product"):
+            item = product.find("h3").get_text().strip()
+            if product.find("ins"):
+                price = product.find("ins").text
+            else:
+                if product.find("bdi"):
+                    price = product.find("bdi").text
+            if product.find("div", class_="fusion-out-of-stock"):
+                stock = "Out of stock"
+            else:
+                stock = "In Stock"
+            link = product.find("a").get("href")
+
             item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
+
+        if soup.find("a", class_="next page-numbers"):
+            new_url = soup.find("a", class_="next page-numbers").get("href")
+            soup = get_html(new_url)
+        else:
+            next_page = False
 
     return data
