@@ -19,6 +19,6 @@ def scrape(pbar=None):
                 price = re.findall(r"\$\d+\.\d{2}", product.find_all(class_="productListing-data")[-1].get_text())[0]
                 stock = "In stock"
                 link = product.find("a").get("href")
-                item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
+                #item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
 
     return data
