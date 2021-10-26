@@ -3,6 +3,7 @@ import re
 
 
 def scrape(pbar=None):
+    return
     item, price, stock, link = ["", "", "", ""]
     data = []
     name = "just4him"
