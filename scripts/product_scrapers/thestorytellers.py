@@ -6,43 +6,27 @@ def scrape(pbar=None):
     item, price, stock, link = ["", "", "", ""]
     data = []
     name = "thestorytellers"
-    url = "https://www.thestorytellerspipe.com/tinned-tobacco"
-    soup = get_html(url)
-    for category in soup.find(id="nwg8uinlineContent-gridContainer").find_all("a"):
-        new_soup = get_html(category.get("href"))
-        brand = category.get_text()
-        for script in new_soup.find_all("script", type="text/javascript"):
-            if "warmupData" in str(script):
-                script = str(script).replace("\n", "")
-                script = script.replace('''<script type="text/javascript">        var warmupData = ''', "")
-                script = script.replace(''';    </script>''', "")
-                json_data = json.loads(script)
+    st_url = ["https://www.thestorytellerspipe.com/tinned-tobacco-a-c",
+              "https://www.thestorytellerspipe.com/tinned-tobacco-m-o",
+              "https://www.thestorytellerspipe.com/tinned-tobacco-p-r"]
+    for url in st_url:
+        soup = get_html(url)
 
-                def find_key(search_data, key, path=None):
-                    if not path:
-                        path = []
-                    for n in search_data:
-                        if n == key:
-                            return path + [n]
-                        if isinstance(search_data[n], dict):
-                            new_path = find_key(search_data[n], key, path=path + [n])
-                            if new_path:
-                                return new_path
-
-                keys = find_key(json_data, "products")
-                if not keys:
-                    continue
-                for n in keys:
-                    json_data = json_data[n]
-
-                for product in json_data:
-                    item = " ".join([brand, product["name"]])
-                    price = "${:.2f}".format(product["price"])
-                    if product["isInStock"]:
-                        stock = "In stock"
+        for category in soup.find_all("a", class_="_1fbEI"):
+            new_soup = get_html(category.get("href"))
+            for product in new_soup.find_all("div", class_="_3DNsL"):
+                if product.find("div", class_="_1bfj5"):
+                    if product.find("h3"):
+                        item = product.find("h3").get_text()
+                    if product.find("span", class_="_2-l9W"):
+                        price = product.find("span", class_="_2-l9W").get_text()
+                if product.find("a", class_="_3mKI1"):
+                    link = product.find("a", class_="_3mKI1").get("href")
+                if product.find("div", class_="_30f72"):
+                    if (product.find("div", class_="_30f72").get_text() == "Add to Cart"):
+                        stock = "In Stock"
                     else:
                         stock = "Out of stock"
-                    link = "https://www.thestorytellerspipe.com/product-page/" + product["urlPart"]
-                    item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
 
+                item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
     return data
