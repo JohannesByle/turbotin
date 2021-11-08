@@ -3,10 +3,23 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 import json
 import os
+from datetime import timedelta, datetime
+from base64 import b64encode
 
 path = os.path.dirname(__file__)
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(16)
+
+secret_key_file = os.path.join(path, "secret_key.json")
+max_time = datetime.now() - timedelta(days=31)
+if os.path.exists(secret_key_file) and datetime.fromtimestamp(os.path.getmtime(secret_key_file)) > max_time:
+    with open(secret_key_file, "r") as f:
+        app.config['SECRET_KEY'] = json.load(f)
+else:
+    secret_key = b64encode(os.urandom(16)).decode("utf-8")
+    app.config['SECRET_KEY'] = secret_key
+    with open(secret_key_file, "w") as f:
+        json.dump(secret_key, f)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ["DATABASE_URL"]
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_POOL_RECYCLE'] = 280

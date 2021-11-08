@@ -27,3 +27,4 @@
 /flask_app/static/scss/.sass-cache/
 /flask_app/static/bootstrap/
 /archive.csv
+/flask_app/secret_key.json
