@@ -36,7 +36,7 @@ def send_email_verification_code(user):
 
 @auth_blueprint.route('/login')
 def login():
-    return render_template("login.html")
+    return render_template("login.html", next_=request.args.get("next"))
 
 
 @auth_blueprint.route('/login', methods=['POST'])
@@ -52,7 +52,8 @@ def login_post():
         return redirect("/login")
 
     login_user(user, remember=remember)
-    return redirect("/email_updates")
+    next_ = request.form.get("next")
+    return redirect(next_ if next_ else "/email_updates")
 
 
 @auth_blueprint.route('/logout')
