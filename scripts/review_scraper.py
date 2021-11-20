@@ -9,9 +9,9 @@ def get_html(url):
     return BeautifulSoup(response.read(), features="lxml")
 
 
-def get_reviews(url):
+def get_reviews():
     review_data = []
-    soup = get_html(url)
+    soup = get_html("https://www.tobaccoreviews.com/browse")
     for tr in tqdm(soup.find_all("tr"), desc="Getting reviews"):
         if tr.find("a"):
             sub_soup = get_html(r"https://www.tobaccoreviews.com" + tr.find("a").get("href"))

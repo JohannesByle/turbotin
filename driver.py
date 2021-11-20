@@ -37,7 +37,7 @@ def scrape_products(name, pbar=None):
 
 
 def get_review_data():
-    data = pd.DataFrame(get_reviews("https://www.tobaccoreviews.com/browse"))
+    data = pd.DataFrame(get_reviews())
     return data
 
 
