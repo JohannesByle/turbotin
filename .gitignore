@@ -2,7 +2,7 @@
 /log.txt
 /data/product_data.p
 /refactor.py
-/__pycache__/
+/**/__pycache__/
 /.idea/
 /data/review_data.p
 /product_scrapers/__pycache__/
