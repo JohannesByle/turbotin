@@ -5,6 +5,7 @@ from selenium.webdriver.common.keys import Keys
 from bs4 import BeautifulSoup
 from . import add_item
 
+
 def scrape(pbar=None):
     item, price, stock, link = ["", "", "", ""]
     data = []
@@ -12,6 +13,7 @@ def scrape(pbar=None):
     urls = ["https://kbven.com/product-category/kbb/",
             "https://kbven.com/product-category/opb"]
     chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
 
@@ -48,7 +50,7 @@ def scrape(pbar=None):
                 else:
                     stock = "In stock"
                 item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
-                
+
         finally:
             # tidy-up
             browser.quit()
