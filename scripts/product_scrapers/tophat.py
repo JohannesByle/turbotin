@@ -6,7 +6,7 @@ def scrape(pbar=None):
     item, price, stock, link = ["", "", "", ""]
     data = []
     name = "tophat"
-    url = "https://tophattobacco.com/pipes-and-pipe-tobacco/pipe-tobacco/"
+    url = "https://tophattobacco.com/pipe-tobacco/"
 
     soup = get_html(url)
 
