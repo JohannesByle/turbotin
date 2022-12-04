@@ -39,5 +39,12 @@ def scrape(pbar=None):
                 if element.get("src") and not element.get("class"):
                     item = element.get("alt")
             item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
-
+        if new_soup.find("div", class_="nextButton"):
+            newpages = new_soup.find("div", class_="pagination").find_all("a")
+            newpage = newpages[-1]
+            new_url = "https://www.smokingpipes.com" + newpage.get("href")
+            time.sleep(wait_time)
+            new_soup = get_html(new_url)
+        else:
+            next_page = False
     return data
