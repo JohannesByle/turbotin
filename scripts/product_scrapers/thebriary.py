@@ -28,4 +28,5 @@ def scrape(pbar=None):
         else:
             next_page = False
 
+
     return data
