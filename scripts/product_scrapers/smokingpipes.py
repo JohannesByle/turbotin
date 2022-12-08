@@ -39,12 +39,36 @@ def scrape(pbar=None):
                 if element.get("src") and not element.get("class"):
                     item = element.get("alt")
             item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
+
         if new_soup.find("div", class_="nextButton"):
             newpages = new_soup.find("div", class_="pagination").find_all("a")
-            newpage = newpages[-1]
-            new_url = "https://www.smokingpipes.com" + newpage.get("href")
-            time.sleep(wait_time)
-            new_soup = get_html(new_url)
+            newpages = newpages[1:-1]
+            for newpage in newpages:
+                new_url = "https://www.smokingpipes.com" + newpage.get("href")
+                try:
+                    new_soup = get_html(new_url)
+                except:
+                    time.sleep(wait_time)
+                    wait_time = wait_time + 1
+                    pass
+                for product in new_soup.find_all(class_="product"):
+                    for element in product.find_all():
+                        if element.get("class"):
+                            if " ".join(element.get("class")) == "noStock":
+                                if element.get_text() == "Currently Out of Stock":
+                                    stock = "Out of stock"
+                                else:
+                                    stock = element.get_text().strip()
+                            if " ".join(element.get("class")) == "price" and \
+                                    element.get_text().strip() != "Currently Out of Stock":
+                                price = min(re.findall(r"\$\d+\.\d+", element.get_text().strip()))
+                                stock = "In Stock"
+                            if " ".join(element.get("class")) == "imgDiv":
+                                for items in element.find_all("a"):
+                                    link = "https://www.smokingpipes.com" + items.get("href")
+                        if element.get("src") and not element.get("class"):
+                            item = element.get("alt")
+                    item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
         else:
             next_page = False
     return data
