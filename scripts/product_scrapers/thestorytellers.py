@@ -6,24 +6,29 @@ def scrape(pbar=None):
     item, price, stock, link = ["", "", "", ""]
     data = []
     name = "thestorytellers"
-    st_url = ["https://www.thestorytellerspipe.com/tinned-tobacco-a-c",
-              "https://www.thestorytellerspipe.com/tinned-tobacco-m-o",
-              "https://www.thestorytellerspipe.com/tinned-tobacco-p-r"]
-    for url in st_url:
-        soup = get_html(url)
+    url = "https://www.thestorytellerspipe.com/tinned-tobacco"
 
-        for category in soup.find_all("a", class_="_1fbEI"):
-            new_soup = get_html(category.get("href"))
-            for product in new_soup.find_all("div", class_="_3DNsL"):
-                if product.find("div", class_="_1bfj5"):
-                    if product.find("h3"):
-                        item = product.find("h3").get_text()
-                    if product.find("span", class_="_2-l9W"):
-                        price = product.find("span", class_="_2-l9W").get_text()
-                if product.find("a", class_="_3mKI1"):
-                    link = product.find("a", class_="_3mKI1").get("href")
-                if product.find("div", class_="_30f72"):
-                    if (product.find("div", class_="_30f72").get_text() == "Add to Cart"):
+    soup = get_html(url)
+    page = 1
+    button = True
+    while button:
+        if soup.find("button", class_="txtqbB"):
+            page = page + 1
+            url = ("https://www.thestorytellerspipe.com/tinned-tobacco?page=" + str(page))
+            soup = get_html(url)
+        else:
+            button = False
+    else:
+        for category in soup.find_all("ul", class_="S4WbK_ c2Zj9x"):
+            for product in category.find_all("li"):
+                if product.find("h3"):
+                    item = product.find("h3").get_text()
+                if product.find("span", class_="cfpn1d"):
+                    price = product.find("span", class_="cfpn1d").get_text()
+                if product.find("a", class_="JPDEZd"):
+                    link = product.find("a", class_="JPDEZd").get("href")
+                if product.find("span", class_="so1sCxo"):
+                    if (product.find("span", class_="so1sCxo").get_text() == "Add to Cart"):
                         stock = "In Stock"
                     else:
                         stock = "Out of stock"
