@@ -7,17 +7,22 @@ def scrape(pbar=None):
     data = []
     name = "thestorytellers"
     url = "https://www.thestorytellerspipe.com/tinned-tobacco"
-
     soup = get_html(url)
     page = 1
     button = True
+    wait_time = 2.75
     while button:
-        if soup.find("button", class_="txtqbB"):
-            page = page + 1
-            url = ("https://www.thestorytellerspipe.com/tinned-tobacco?page=" + str(page))
-            soup = get_html(url)
-        else:
-            button = False
+        try:
+            if soup.find("button", class_="txtqbB"):
+                page = page + 1
+                url = ("https://www.thestorytellerspipe.com/tinned-tobacco?page=" + str(page))
+                soup = get_html(url)
+            else:
+                button = False
+        except:
+            time.sleep(wait_time)
+            wait_time = wait_time + 1
+            pass
     else:
         for category in soup.find_all("ul", class_="S4WbK_ c2Zj9x"):
             for product in category.find_all("li"):
@@ -32,6 +37,5 @@ def scrape(pbar=None):
                         stock = "In Stock"
                     else:
                         stock = "Out of stock"
-
                 item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
     return data
