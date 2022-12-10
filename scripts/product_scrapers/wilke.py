@@ -8,19 +8,33 @@ def scrape(pbar=None):
     url = "https://www.wilkepipetobacco.com/tincellar"
 
     soup = get_html(url)
-    for product in soup.find_all('ul', class_="_3g8J4 _3Xnzg"):
-        for element in product.find_all('li'):
-            if element.find("h3", class_="_2BULo"):
-                item = element.find("h3", class_="_2BULo").get_text().strip()
-            if element.find("a", class_="_2zTHN"):
-                link = element.find("a", class_="_2zTHN").get("href")
-            if element.find("span", class_="_23ArP"):
-                price = element.find("span", class_="_23ArP").get_text().strip()
-            if element.find("span", class_="_3DJ-f"):
-                stock = element.find("span", class_="_3DJ-f").get_text().strip()
-            if stock != "Out of stock":
-                stock = "In Stock"
-
-            item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
+    for cats in soup.find_all("div", class_="_2Hij5 _3bcaz"):
+        error = True
+        wait_time = 2.75
+        for cat in cats.find_all("h2", class_="font_2"):
+            for links in cat.find_all("a"):
+                new_url = links.get("href")
+                while error:
+                    try:
+                        new_soup = get_html(new_url)
+                        error = False
+                    except:
+                        time.sleep(wait_time)
+                        print("An Error Occurred: sleeping " + str(wait_time) + "s")
+                        wait_time = wait_time + 1
+                        pass
+                for product in new_soup.find_all("ul", class_="S4WbK_ c2Zj9x"):
+                    for element in product.find_all("div", class_="ETPbIy WJH1qD"):
+                        stock = ""
+                        if element.find("div", class_="CZ0KIs"):
+                            item = element.find("h3", class_="si6U6Ox").get_text().strip()
+                            link = element.find("a", class_="JPDEZd").get("href")
+                        if element.find("span", class_="cfpn1d"):
+                            price = element.find("span", class_="cfpn1d").get_text().strip()
+                        if element.find("span", class_="zOeYx3"):
+                            stock = element.find("span", class_="zOeYx3").get_text().strip()
+                        if stock != "Out of stock":
+                            stock = "In Stock"
+                        item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
 
     return data
