@@ -27,8 +27,10 @@ def scrape(pbar=None):
                     for element in product.find_all("div", class_="ETPbIy WJH1qD"):
                         stock = ""
                         if element.find("div", class_="CZ0KIs"):
-                            item = element.find("h3", class_="si6U6Ox").get_text().strip()
-                            link = element.find("a", class_="JPDEZd").get("href")
+                            if element.find("h3", class_="si6U6Ox"):
+                                item = element.find("h3", class_="si6U6Ox").get_text().strip()
+                            if element.find("a", class_="JPDEZd"):
+                                link = element.find("a", class_="JPDEZd").get("href")
                         if element.find("span", class_="cfpn1d"):
                             price = element.find("span", class_="cfpn1d").get_text().strip()
                         if element.find("span", class_="zOeYx3"):
