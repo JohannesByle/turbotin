@@ -10,21 +10,21 @@ def scrape(pbar=None):
     soup = get_html(url)
     next_page = True
     while next_page:
-        for product in soup.find_all("div", class_="product"):
-            for element in product.find_all():
-                if element.get("class"):
-                    if " ".join(element.get("class")) == "price":
-                        if element.find("ins"):
-                            price = element.find("ins").get_text().strip()
-                        else:
-                            price = element.get_text().strip()
-                    if " ".join(element.get("class")) == "name product-title":
-                        item = element.get_text().strip()
-                        link = element.find("a").get("href")
-                    if " ".join(element.get('class')) == "out-of-stock-label":
-                        stock = "Out of stock"
-                    if stock != "Out of stock":
+        for product in soup.find_all("div", class_="col-inner"):
+            for element in product.find_all("div", class_="box-text"):
+                if element.find("p", class_="product-title"):
+                    item = element.find("p", class_="product-title").get_text().strip()
+                if element.find("a", class_="woocommerce-LoopProduct-link"):
+                    link = element.find("a", class_="woocommerce-LoopProduct-link").get("href")
+                if element.find("div", class_="price-wrapper"):
+                    price = element.find("div", class_="price-wrapper").get_text().strip()
+                if element.find("ins"):
+                    price = element.find("ins").get_text().strip()
+                if element.find("div", class_="add-to-cart-button"):
+                    if element.find("div", class_="add-to-cart-button").get_text().strip() == "Add to cart":
                         stock = "In Stock"
+                    if element.find("div", class_="add-to-cart-button").get_text().strip() == "Read more":
+                        stock = "Out of stock"
             item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
         if soup.find("a", class_="next page-number"):
             soup = get_html(soup.find("a", class_="next page-number").get("href"))
