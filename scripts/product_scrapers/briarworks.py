@@ -23,9 +23,7 @@ def scrape(pbar=None):
                 stock = "In Stock"
             item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
         if soup.find("a", class_="pagination-item pagination-next"):
-            print("found Next button")
             new_url = soup.find("a", class_="pagination-item pagination-next").get("href")
-            print("new url is " + new_url)
             soup = get_html(new_url)
         else:
             next_page = False

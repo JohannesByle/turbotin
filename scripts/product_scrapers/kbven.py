@@ -1,8 +1,3 @@
-from datetime import datetime
-import time
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from bs4 import BeautifulSoup
 from . import add_item
 
 
@@ -10,49 +5,25 @@ def scrape(pbar=None):
     item, price, stock, link = ["", "", "", ""]
     data = []
     name = "kbven"
-    urls = ["https://kbven.com/product-category/kbb/",
-            "https://kbven.com/product-category/opb"]
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-gpu")
-
-    for url in urls:
-
-        try:
-            browser = webdriver.Chrome(options=chrome_options)
-            browser.get(url)
-            html = browser.find_element_by_tag_name('html')
-            scroll_max = 100
-            scroll_count = 0
-            products = 0
-            while scroll_count < scroll_max:
-                scroll_count += 1
-                soup = BeautifulSoup(browser.page_source.encode('utf8'), "lxml")
-                if products == len(soup.find("ul", class_="products").find_all("li")):
-                    break
-                products = len(soup.find("ul", class_="products").find_all("li"))
-                for i in range(10):
-                    html.send_keys(Keys.END)
-                    time.sleep(1)
-
-            for product in soup.find_all("div", class_="product-content-inner"):
-                item = product.find("h3").get_text()
-                if url == "https://kbven.com/product-category/kbb/":
-                    item = "KBVEN " + item
-                price = product.find(class_="price").get_text()
+    url = "https://kbven.com/product-category/current-menu/tins/"
+    soup = get_html(url)
+    next_page = True
+    while next_page:
+        for product in soup.find_all("div", class_="astra-shop-summary-wrap"):
+            if product.find("a", class_="ast-loop-product__link"):
+                item = product.find("a", class_="ast-loop-product__link").get_text().strip()
                 link = product.find("a").get("href")
-                parent = product.parent
-                while parent.name != "li":
-                    parent = parent.parent
-                if "Out of Stock" in parent.get_text():
-                    stock = "Out of stock"
-                else:
-                    stock = "In stock"
-                item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
-
-        finally:
-            # tidy-up
-            browser.quit()
+            if product.find("span", class_="woocommerce-Price-amount amount"):
+                price = product.find("span", class_="woocommerce-Price-amount amount").get_text().strip()
+            if product.find("a", class_="button").get_text().strip() == "Add to cart":
+                stock = "In Stock"
+            if product.find("a", class_="button").get_text().strip() == "Read more":
+                stock = "Out of stock"
+            item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
+        if soup.find("a", class_="next page-numbers"):
+            new_url = soup.find("a", class_="next page-numbers").get("href")
+            soup = get_html(new_url)
+        else:
+            next_page = False
 
     return data
