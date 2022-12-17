@@ -1,4 +1,4 @@
-from . import add_item
+from . import get_html, add_item
 
 
 def scrape(pbar=None):
