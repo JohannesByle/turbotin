@@ -12,23 +12,24 @@ def scrape(pbar=None):
     soup = get_html(url)
     next_page = True
     while next_page:
-        for products in soup.find_all("ul", class_="products"):
-            for product in products.find_all("li", class_="product"):
-                item = product.find("h2").text
+        for product in soup.find_all("div", class_="product-small box"):
+            stock = "Out of stock"
+            if product.find("p", class_="name product-title woocommerce-loop-product__title"):
+                item = product.find("p", class_="name product-title woocommerce-loop-product__title").get_text().strip()
+            if product.find("a", class_="woocommerce-LoopProduct-link woocommerce-loop-product__link"):
+                link = product.find("a", class_="woocommerce-LoopProduct-link woocommerce-loop-product__link").get(
+                    "href")
+            if product.find("span", class_="price"):
+                stock = "In Stock"
                 if product.find("ins"):
-                    price = product.find("ins").text
+                    price = product.find("ins").get_text()
                 else:
                     if product.find("bdi"):
-                        price = product.find("bdi").text
-                if product.find("span", class_="price"):
-                    stock = "In Stock"
-                else:
-                    stock = "Out of stock"
-                link = product.find("a").get("href")
-                item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
+                        price = product.find("bdi").get_text()
 
-        if soup.find("a", class_="next page-numbers"):
-            new_url = soup.find("a", class_="next page-numbers").get("href")
+            item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
+        if soup.find("a", class_="next page-number"):
+            new_url = soup.find("a", class_="next page-number").get("href")
             soup = get_html(new_url)
         else:
             next_page = False
