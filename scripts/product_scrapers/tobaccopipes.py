@@ -18,7 +18,7 @@ def scrape(pbar=None):
                 if li.find("h4", class_="card-title"):
                     link = li.find("a").get("href")
                     item = li.find("h4", class_="card-title").text.strip()
-                    stock = "In stock"
+                    stock = "In Stock"
                     price = li.find("span", class_="price price--withoutTax").text.strip()
 
                     if li.find_all("div", class_="outofstock"):

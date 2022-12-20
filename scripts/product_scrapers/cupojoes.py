@@ -20,7 +20,7 @@ def scrape(pbar=None):
                             stock = "In Stock"
                         else:
                             stock = element.get_text().strip()
-                    if " ".join(element.get("class")) == "price price--withoutTax":
+                    if " ".join(element.get("class")) == "price price--withTax":
                         price = element.get_text()
                     if " ".join(element.get("class")) == "card-title":
                         item = element.get_text().strip()

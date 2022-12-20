@@ -20,7 +20,7 @@ def scrape(pbar=None):
             if product.find_all("span", class_="badge badge--sold-out"):
                 stock = "Out of stock"
             else:
-                stock = "In stock"
+                stock = "In Stock"
             item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
         page_number += 1
     return data
