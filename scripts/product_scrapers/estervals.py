@@ -32,7 +32,7 @@ def scrape(pbar=None):
                         if element.find("span", class_="pl_list_price_wrapper"):
                             pricebulk = element.find("span", class_="pl_list_price_wrapper").get_text().strip().split(
                                 "€")
-                            price = (pricebulk[0] + "€")
+                            price = ("€" + pricebulk[0])
                         for pics in element.find_all("img"):
                             if pics.get("title") == "Available":
                                 stock = "In Stock"
