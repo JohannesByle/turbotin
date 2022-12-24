@@ -8,7 +8,7 @@ def scrape(pbar=None):
     url = "https://www.wilkepipetobacco.com/tincellar"
 
     soup = get_html(url)
-    for cats in soup.find_all("div", class_="_2Hij5 _3bcaz"):
+    for cats in soup.find_all("div", class_="KcpHeO tz5f0K"):
         error = True
         wait_time = 2.75
         for cat in cats.find_all("h2", class_="font_2"):
