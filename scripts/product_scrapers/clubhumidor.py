@@ -26,10 +26,10 @@ def scrape(pbar=None):
                 link = product.find("a").get("href")
 
                 item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
-            if soup.find("a", class_="next page-numbers"):
-                new_url = soup.find("a", class_="next page-numbers").get("href")
-                soup = get_html(new_url)
-            else:
-                next_page = False
+        if soup.find("a", class_="next page-numbers"):
+            new_url = soup.find("a", class_="next page-numbers").get("href")
+            soup = get_html(new_url)
+        else:
+            next_page = False
 
     return data
