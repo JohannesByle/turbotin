@@ -9,21 +9,9 @@ def scrape(pbar=None):
     url = "https://www.thestorytellerspipe.com/tinned-tobacco"
     soup = get_html(url)
     page = 1
-    button = True
     wait_time = 2.75
-    while button:
-        try:
-            if soup.find("button", class_="txtqbB"):
-                page = page + 1
-                url = ("https://www.thestorytellerspipe.com/tinned-tobacco?page=" + str(page))
-                soup = get_html(url)
-            else:
-                button = False
-        except:
-            time.sleep(wait_time)
-            wait_time = wait_time + 1
-            pass
-    else:
+    next_page = True
+    while next_page:
         for category in soup.find_all("ul", class_="S4WbK_ c2Zj9x"):
             for product in category.find_all("li"):
                 if product.find("h3"):
@@ -38,4 +26,17 @@ def scrape(pbar=None):
                     else:
                         stock = "Out of stock"
                 item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
+
+
+        for buttons in soup.find_all("button", class_="txtqbB"):
+            if buttons.get_text() == "Load Previous":
+                next_page = False
+
+            if buttons.get_text() == "Load More":
+                next_page = True
+                page = page + 1
+                url = ("https://www.thestorytellerspipe.com/tinned-tobacco?page=" + str(page))
+                soup = get_html(url)
+
+
     return data
