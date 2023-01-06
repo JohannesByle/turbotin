@@ -9,7 +9,7 @@ def scrape(pbar=None):
     url = "https://www.lilbrown.com/product-category/pipe-tobacco/"
 
     soup = get_html(url)
-    for cat in soup.find_all("li", class_="product-category product first"):
+    for cat in soup.find_all("li", class_="product-category"):
         link = cat.find("a").get("href")
         error = True
         wait_time = 2.75
