@@ -6,7 +6,7 @@ def scrape(pbar=None):
     item, price, stock, link = ["", "", "", ""]
     data = []
     name = "marscigars"
-    url = "http://www.marscigars.com/pipetobacco.aspx"
+    url = "https://www.marscigars.com/pipetobacco.aspx"
 
     soup = get_html(url)
     for bar in soup.find_all("table", class_="category-list"):
@@ -17,7 +17,7 @@ def scrape(pbar=None):
             while error:
                 try:
                     error = False
-                    new_soup = get_html("http://www.marscigars.com" + cat.find("a").get("href"))
+                    new_soup = get_html("https://www.marscigars.com" + cat.find("a").get("href"))
                     error = False
                 except:
                     time.sleep(wait_time)
@@ -35,7 +35,7 @@ def scrape(pbar=None):
                                 head, sep, price = priceraw.partition("m ")
                         if " ".join(element.get("class")) == "product-list-options":
                             item = element.find("a").get_text().strip()
-                            link = ("http://www.marscigars.com" + element.find("a").get("href"))
+                            link = ("https://www.marscigars.com" + element.find("a").get("href"))
                         if " ".join(element.get("class")) == "product-list-control":
                             if element.find("input"):
                                 stock = "In Stock"
