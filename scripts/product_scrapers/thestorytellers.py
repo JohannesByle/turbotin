@@ -20,8 +20,8 @@ def scrape(pbar=None):
                     price = product.find("span", class_="cfpn1d").get_text()
                 if product.find("a", class_="JPDEZd"):
                     link = product.find("a", class_="JPDEZd").get("href")
-                if product.find("span", class_="so1sCxo"):
-                    if (product.find("span", class_="so1sCxo").get_text() == "Add to Cart"):
+                if product.find("span", class_="sJrJbHu"):
+                    if (product.find("span", class_="sJrJbHu").get_text() == "Add to Cart"):
                         stock = "In Stock"
                     else:
                         stock = "Out of stock"
