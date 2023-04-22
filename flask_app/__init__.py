@@ -1,71 +1,47 @@
-from flask import Flask, render_template, redirect
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-import json
+
+
 import os
-from datetime import timedelta, datetime
-from base64 import b64encode
 
-path = os.path.dirname(__file__)
-app = Flask(__name__)
-
-secret_key_file = os.path.join(path, "secret_key.json")
-max_time = datetime.now() - timedelta(days=31)
-if os.path.exists(secret_key_file) and datetime.fromtimestamp(os.path.getmtime(secret_key_file)) > max_time:
-    with open(secret_key_file, "r") as f:
-        app.config['SECRET_KEY'] = json.load(f)
-else:
-    secret_key = b64encode(os.urandom(16)).decode("utf-8")
-    app.config['SECRET_KEY'] = secret_key
-    with open(secret_key_file, "w") as f:
-        json.dump(secret_key, f)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ["DATABASE_URL"]
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_POOL_RECYCLE'] = 280
-
-# db = SQLAlchemy(app, engine_options={"pool_recycle": 280})
-db = SQLAlchemy(app)
-db.init_app(app)
+from flask import Flask, Response
+from flask_login import LoginManager, current_user
+from flask_smorest import Api
 
 login_manager = LoginManager()
-login_manager.login_view = 'auth.login'
-login_manager.init_app(app)
+login_manager.session_protection = "strong"
 
-from .models import User
+from . import auth  # noqa
+from .models import db  # noqa
 
-from .views.full_table import full_table_blueprint
-from .views.individual_blends import individual_blends_blueprint
-from .views.email_updates import email_updates_blueprint
-from .auth import auth_blueprint
-from .auth.email_verification import email_verification_blueprint
-from .auth.reset_password import reset_password_blueprint
-from .views.admin import admin_blueprint
-
-app.register_blueprint(full_table_blueprint)
-app.register_blueprint(individual_blends_blueprint)
-app.register_blueprint(email_updates_blueprint)
-app.register_blueprint(auth_blueprint)
-app.register_blueprint(email_verification_blueprint)
-app.register_blueprint(reset_password_blueprint)
-app.register_blueprint(admin_blueprint)
-
-app.jinja_env.add_extension('jinja2.ext.do')
+current_user_str = "4e29cdd3-1156-4093-b50c-263a62426f98"
 
 
-@login_manager.user_loader
-def load_user(user_id):
-    # since the user_id is just the primary key of our user table, use it in the query for the user
-    return User.query.get(int(user_id))
+def create_app() -> Flask:
 
+    app = Flask(__name__, static_url_path='/',
+                static_folder='..\\react_app\\build')
 
-@app.route('/')
-def main():
-    return redirect("/full_table", code=302)
+    app.config.from_pyfile('config.py', silent=False)
 
+    if not os.path.exists(app.instance_path):
+        os.makedirs(app.instance_path)
 
-@app.route('/faq')
-def faq():
-    with open(os.path.join(path, "static/questions.json")) as f:
-        faq_items = json.load(f)
-    return render_template("faq.html", faq_items=faq_items)
+    db.init_app(app)
+    with app.app_context():
+        db.create_all()
+
+    login_manager.init_app(app)
+
+    @app.errorhandler(404)
+    def base(e):
+        return app.send_static_file('index.html')
+
+    @app.after_request
+    def add_auth_meta_data(response: Response):
+        response.headers[current_user_str] = auth.UserDetails().dumps(
+            current_user)
+        return response
+
+    api = Api(app)
+    api.register_blueprint(auth.bp)
+
+    return app

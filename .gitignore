@@ -28,3 +28,8 @@
 /flask_app/static/bootstrap/
 /archive.csv
 /flask_app/secret_key.json
+/react_app/build
+/**/node_modules/
+/**/.venv/
+/react_app/src/service/
+/instance/

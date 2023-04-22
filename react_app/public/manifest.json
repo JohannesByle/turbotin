@@ -1,0 +1,11 @@
+{
+  "short_name": "Turbotin",
+  "name": "Turbotin",
+  "icons": [
+    {
+      "src": "TurboTinLogo.png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone"
+}

@@ -1,25 +1,31 @@
 from flask_login import UserMixin
-from . import db
+from flask_sqlalchemy import SQLAlchemy
+import sqlalchemy as sa
+
+db = SQLAlchemy()
 
 
 class Tobacco(db.Model):
-    store = db.Column(db.String(100))
-    item = db.Column(db.String(150), primary_key=True)
-    price = db.Column(db.String(100))
-    stock = db.Column(db.String(100))
-    link = db.Column(db.String(250), primary_key=True)
-    time = db.Column(db.DateTime(), primary_key=True)
-    brand = db.Column(db.String(500))
-    blend = db.Column(db.String(500))
+    store = sa.Column(sa.String(100))
+    item = sa.Column(sa.String(150), primary_key=True)
+    price = sa.Column(sa.String(100))
+    stock = sa.Column(sa.String(100))
+    link = sa.Column(sa.String(250), primary_key=True)
+    time = sa.Column(sa.DateTime(), primary_key=True)
+    brand = sa.Column(sa.String(500))
+    blend = sa.Column(sa.String(500))
 
 
 class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(100), unique=True)
-    password = db.Column(db.String(100))
-    name = db.Column(db.String(100))
-    email_verified = db.Column(db.Boolean())
-    email_code = db.Column(db.String(64))
-    email_updates = db.Column(db.String(10000))
-    password_reset_code = db.Column(db.String(64))
-    latest_auth_email = db.Column(db.DateTime())
+    id = sa.Column(sa.Integer, primary_key=True)
+    email = sa.Column(sa.String(100), unique=True)
+    password = sa.Column(sa.String(100))
+    email_verified = sa.Column(sa.Boolean())
+    email_code = sa.Column(sa.String(64))
+    password_reset_code = sa.Column(sa.String(64))
+    latest_auth_email = sa.Column(sa.DateTime())
+
+
+class Dummy(db.Model):
+    id = sa.Column(sa.Integer, primary_key=True)
+    value = sa.Column(sa.String(500))
