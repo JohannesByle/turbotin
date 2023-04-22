@@ -1,7 +1,4 @@
-
-
 import os
-
 from flask import Flask, Response
 from flask_login import LoginManager, current_user
 from flask_smorest import Api
@@ -9,10 +6,13 @@ from flask_smorest import Api
 login_manager = LoginManager()
 login_manager.session_protection = "strong"
 
+
+# pylint: disable-next=wrong-import-position
 from . import auth  # noqa
+# pylint: disable-next=wrong-import-position
 from .models import db  # noqa
 
-current_user_str = "4e29cdd3-1156-4093-b50c-263a62426f98"
+CURRENT_USER_STR = "4e29cdd3-1156-4093-b50c-263a62426f98"
 
 
 def create_app() -> Flask:
@@ -37,7 +37,7 @@ def create_app() -> Flask:
 
     @app.after_request
     def add_auth_meta_data(response: Response):
-        response.headers[current_user_str] = auth.UserDetails().dumps(
+        response.headers[CURRENT_USER_STR] = auth.UserDetails().dumps(
             current_user)
         return response
 
