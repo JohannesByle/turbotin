@@ -7,18 +7,19 @@ from urllib.parse import quote
 
 # Variable allowing for relative paths
 path = os.path.dirname(os.path.dirname(__file__))
+turbotin_email = "turbotinftw@gmail.com"
 
 
 def send_email(to, subject, body):
     msg = MIMEText(body, "html")
     msg['Subject'] = subject
-    msg['From'] = 'Turbotin Admin <turbotinftw@gmail.com>'
+    msg['From'] = f'Turbotin Admin <{turbotin_email}>'
     msg['To'] = to
 
     server = smtplib.SMTP("smtp.gmail.com:587")
     server.starttls()
-    server.login("turbotinftw@gmail.com", os.environ["EMAIL_PASSWORD"])
-    server.sendmail("turbotinftw@gmail.com", to, msg.as_string())
+    server.login(turbotin_email, os.environ["EMAIL_PASSWORD"])
+    server.sendmail(turbotin_email, to, msg.as_string())
 
     # And to close server connection
     server.quit()
@@ -27,7 +28,8 @@ def send_email(to, subject, body):
 def send_update(data, users):
     data = data.copy()
     data["price_num"] = data["price"].str.extract(r'(\d+.\d+)')
-    data["price_num"] = pd.to_numeric(data["price_num"], errors="coerce").fillna(10 ** 4)
+    data["price_num"] = pd.to_numeric(
+        data["price_num"], errors="coerce").fillna(10 ** 4)
     data = data[data["stock"] != "Out of stock"]
     for index, row in users.iterrows():
         updates = json.loads(row["email_updates"])
@@ -37,16 +39,19 @@ def send_update(data, users):
             filtered_data = data[data["brand"] == brand]
             filtered_data = filtered_data[filtered_data["blend"] == blend]
             if update["stores"]:
-                filtered_data = filtered_data[filtered_data["store"].isin(update["stores"])]
+                filtered_data = filtered_data[filtered_data["store"].isin(
+                    update["stores"])]
             if update["max_price"]:
-                filtered_data = filtered_data[filtered_data["price_num"] < update["max_price"]]
+                filtered_data = filtered_data[filtered_data["price_num"]
+                                              < update["max_price"]]
             if not filtered_data.empty:
-                subject = "{brand} {blend} is in stock".format(brand=brand, blend=blend)
+                subject = "{brand} {blend} is in stock".format(
+                    brand=brand, blend=blend)
                 blend_url = "https://www.turbotin.com/individual_blends/{brand}/{blend}'".format(brand=quote(brand),
-                                                                                     blend=quote(blend))
+                                                                                                 blend=quote(blend))
                 body = "See where <a href='{blend_url}'>{blend}</a> is in stock, or manage your <a " \
                        "href='https://www.turbotin.com/email_updates'>notifications</a> on TurboTin.com".format(blend=blend,
-                                                                                                    blend_url=blend_url)
+                                                                                                                blend_url=blend_url)
                 send_email(row["email"], subject, body)
 
 

@@ -1,10 +1,10 @@
 import { isFunction } from "lodash";
-import { SetState } from ".";
+import { TSetState } from ".";
 import { ignoreCancel } from "./promisify";
 
 export type Waitable = Promise<unknown> | unknown;
 
-export type ActionFn = (setLoading: SetState<boolean>) => Waitable;
+export type ActionFn = (setLoading: TSetState<boolean>) => Waitable;
 
 export type Action = {
   f: ActionFn;
@@ -19,7 +19,7 @@ type Config = {
 
 export async function executeAction(
   action: Action | ActionFn,
-  setLoading: SetState<boolean>,
+  setLoading: TSetState<boolean>,
   config?: Config
 ): Promise<void> {
   const fn = isFunction(action) ? action : action.f;

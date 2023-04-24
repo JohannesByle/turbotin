@@ -5,17 +5,18 @@ import {
   SvgIconComponent,
   Timeline,
 } from "@mui/icons-material";
-import { TRoute } from "./consts";
 import React from "react";
+import { TRoute } from "./consts";
 import Account from "./views/account/account";
 
 type TRouteDetails = {
   name: string;
   Icon: SvgIconComponent;
   element: JSX.Element;
+  nav_hidden?: boolean;
 };
 
-const ROUTES: Record<string, TRouteDetails> = {
+const ROUTES: Record<TRoute, TRouteDetails> = {
   [TRoute.full_table]: {
     name: "Full Table",
     Icon: Home,

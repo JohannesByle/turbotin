@@ -12,22 +12,15 @@ import {
   useTheme,
 } from "@mui/material";
 import Typography from "@mui/material/Typography";
-import React, { useContext } from "react";
-import {
-  Navigate,
-  Outlet,
-  To,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
-
-import { LOGO_URL, TAB_OPACITY, TRoute } from "../consts";
+import React, { useContext, useEffect } from "react";
+import { Outlet, To, useLocation, useNavigate } from "react-router-dom";
 import { isNull } from "lodash";
+import { LOGO_URL, TAB_OPACITY, APP_BAR_ID, TRoute } from "../consts";
 import ROUTES from "../routes";
+import { AuthService } from "../service";
 import { usePromisify } from "../util/promisify";
 import { UserContext } from "../util/userContext";
 import AuthDlg from "./auth/authDlg";
-import { AuthService } from "../service";
 
 const Img = styled("img")``;
 
@@ -49,16 +42,18 @@ const BaseView = (): JSX.Element => {
   const { palette } = useTheme();
   const buttonColor = palette.primary.contrastText;
 
-  if (
-    location.pathname === "/" ||
-    (isNull(user) && location.pathname === my_account)
-  )
-    return <Navigate to={full_table} replace />;
+  useEffect(() => {
+    if (
+      location.pathname === "/" ||
+      (isNull(user) && location.pathname === my_account)
+    )
+      navigate(full_table);
+  }, [navigate, user, location.pathname]);
 
   return (
     <>
       {authDlg}
-      <AppBar position="static">
+      <AppBar position="static" id={APP_BAR_ID}>
         <Toolbar>
           <Img
             src={LOGO_URL}

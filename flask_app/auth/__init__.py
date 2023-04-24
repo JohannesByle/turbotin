@@ -1,0 +1,140 @@
+import binascii
+import os
+
+from flask import (abort, flash, redirect, request, session)
+from flask_smorest import Blueprint, abort
+from flask_login import current_user, login_required, login_user, logout_user
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from scripts.email_methods import send_email
+from .util import send_email_safely, send_email_verification_code
+from .. import STATIC_FOLDER, login_manager
+from ..models import User, db
+import marshmallow as ma
+
+bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+
+def create_code():
+    return binascii.hexlify(os.urandom(32)).decode()
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(user_id)
+
+
+class LoginArgs(ma.Schema):
+    email = ma.fields.String(required=True)
+    password = ma.fields.String(required=True)
+    remember = ma.fields.Boolean()
+
+
+@bp.route('/login', methods=['POST'])
+@bp.arguments(LoginArgs)
+def login(args):
+    email = args['email']
+    password = args['password']
+    remember = args['remember']
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user or not check_password_hash(user.password, password):
+        abort(401)
+
+    login_user(user, remember=remember)
+    return {}
+
+
+class SignupArgs(ma.Schema):
+    email = ma.fields.String(required=True)
+    password = ma.fields.String(required=True)
+
+
+@bp.route('/signup', methods=['POST'])
+@bp.arguments(SignupArgs)
+def signup(args):
+    email = args['email']
+    password = args['password']
+
+    user = User.query.filter_by(email=email).first()
+    if user:
+        abort(409)
+    new_user = User(
+        email=email,
+        password=generate_password_hash(password, method='sha256'),
+        email_code=create_code(),
+        email_verified=False,
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    send_email_verification_code(new_user)
+    return redirect('/login')
+
+
+class UserDetails(ma.Schema):
+    email = ma.fields.String(required=True)
+    email_verified = ma.fields.Boolean(required=True)
+
+
+@bp.route('/get_current_user', methods=['POST'])
+@bp.response(200, UserDetails)
+@login_required
+def get_current_user():
+    return current_user
+
+
+class ChangePasswordArgs(ma.Schema):
+    old_password = ma.fields.String(required=True)
+    new_password = ma.fields.String(required=True)
+
+
+@bp.route('/change_password', methods=['POST'])
+@bp.arguments(ChangePasswordArgs)
+@login_required
+def change_password(args):
+    old_password = args['old_password']
+    new_password = args['new_password']
+
+    if not check_password_hash(current_user.password, old_password):
+        abort(409)
+    user = User.query.filter_by(id=current_user.id).first()
+    user.password = generate_password_hash(new_password, method='sha256')
+    db.session.commit()
+    flash('Password changed', 'success')
+    return {}
+
+
+@bp.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    flash('Logged out', 'info')
+    return {}
+
+
+@bp.route("/delete_account")
+@login_required
+def logout():
+    user = User.query.filter_by(id=current_user.id).first()
+    db.session.delete(user)
+    db.session.commit()
+    flash('Account deleted', 'info')
+    return {}
+
+
+@bp.route("/verify_email/<user_id>/<email_code>")
+def verify_email(user_id, email_code):
+    user = User.query.filter_by(id=user_id).first()
+    print(user)
+    if not user:
+        abort(409)
+    if user.email_verified:
+        flash('Email already verified', 'error')
+    elif email_code == user.email_code:
+        user.email_verified = True
+        db.session.commit()
+        flash('Email verified', 'success')
+    else:
+        abort(409)
+    return redirect('/')

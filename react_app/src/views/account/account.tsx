@@ -49,13 +49,7 @@ const Account = (): JSX.Element => {
       <Email key={0} />,
       <>
         {user.email}
-        {user.email_verified ? (
-          <Tooltip title={"Email verified"}>
-            <IconButton>
-              <Check color={"success"} />
-            </IconButton>
-          </Tooltip>
-        ) : (
+        {user.email_verified || (
           <Tooltip title={"Email not verified!"}>
             <IconButton>
               <Warning color={"error"} />
