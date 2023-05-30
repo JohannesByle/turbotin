@@ -13,7 +13,6 @@ type TProps = {
   password: string;
   setPassword: Dispatch<SetStateAction<string>>;
   hideErrors?: boolean;
-  loading?: boolean;
   label?: string;
   autoComplete?: TextFieldProps["autoComplete"];
   customError?: string;
@@ -22,7 +21,7 @@ type TProps = {
 const MIN_PASSWORD_LENGTH = 8;
 const PASSWORD_HELPER_TEXT = `Password is too short (min ${MIN_PASSWORD_LENGTH})`;
 
-const isValidPassword = (password: string | null): password is string =>
+export const isValidPassword = (password: string | null): password is string =>
   isString(password) && password.length >= MIN_PASSWORD_LENGTH;
 
 const PasswordEdit = (props: TProps): JSX.Element => {
@@ -30,7 +29,6 @@ const PasswordEdit = (props: TProps): JSX.Element => {
     password,
     setPassword,
     hideErrors = false,
-    loading = false,
     label = "Password",
     autoComplete = "current-password",
     customError,
@@ -62,7 +60,6 @@ const PasswordEdit = (props: TProps): JSX.Element => {
       label={label}
       error={isString(customError) || (!hideErrors && isString(passwordError))}
       helperText={customError ?? (!hideErrors && passwordError)}
-      disabled={loading}
       autoComplete={autoComplete}
       InputProps={{
         endAdornment: (

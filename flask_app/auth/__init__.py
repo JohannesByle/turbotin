@@ -1,13 +1,15 @@
 import binascii
 import os
+from urllib.parse import urlencode
 
 from flask import (abort, flash, redirect, request, session)
 from flask_smorest import Blueprint, abort
 from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
+from flask_app.util import error_msg
 
 from scripts.email_methods import send_email
-from .util import send_email_safely, send_email_verification_code
+from .util import send_email_safely, send_email_verification_code, send_password_reset_code
 from .. import STATIC_FOLDER, login_manager
 from ..models import User, db
 import marshmallow as ma
@@ -17,6 +19,14 @@ bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 def create_code():
     return binascii.hexlify(os.urandom(32)).decode()
+
+
+def find_user(user_id: int) -> User:
+    user = User.query.filter_by(id=user_id).first()
+    if not user:
+        flash('User not found', 'error')
+        abort(409)
+    return user
 
 
 @login_manager.user_loader
@@ -40,6 +50,7 @@ def login(args):
     user = User.query.filter_by(email=email).first()
 
     if not user or not check_password_hash(user.password, password):
+        flash('Password/email is incorrect', 'error')
         abort(401)
 
     login_user(user, remember=remember)
@@ -59,6 +70,7 @@ def signup(args):
 
     user = User.query.filter_by(email=email).first()
     if user:
+        flash('A user with that email already exists', 'error')
         abort(409)
     new_user = User(
         email=email,
@@ -69,6 +81,7 @@ def signup(args):
     db.session.add(new_user)
     db.session.commit()
     send_email_verification_code(new_user)
+    flash('Account created! Please verify your email address', 'success')
     return redirect('/login')
 
 
@@ -97,6 +110,7 @@ def change_password(args):
     new_password = args['new_password']
 
     if not check_password_hash(current_user.password, old_password):
+        flash('Old password is not correct', 'error')
         abort(409)
     user = User.query.filter_by(id=current_user.id).first()
     user.password = generate_password_hash(new_password, method='sha256')
@@ -125,12 +139,9 @@ def logout():
 
 @bp.route("/verify_email/<user_id>/<email_code>")
 def verify_email(user_id, email_code):
-    user = User.query.filter_by(id=user_id).first()
-    print(user)
-    if not user:
-        abort(409)
+    user = find_user(user_id)
     if user.email_verified:
-        flash('Email already verified', 'error')
+        return error_msg('Email already verified')
     elif email_code == user.email_code:
         user.email_verified = True
         db.session.commit()
@@ -138,3 +149,58 @@ def verify_email(user_id, email_code):
     else:
         abort(409)
     return redirect('/')
+
+
+class ResetPasswordArgs(ma.Schema):
+    email = ma.fields.String(required=True)
+
+
+@bp.route('/reset_password', methods=['POST'])
+@bp.arguments(ResetPasswordArgs)
+def reset_password_post(args):
+    email = args['email']
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash('Email not found!', 'error')
+        abort(409)
+    user.password_reset_code = create_code()
+    if not send_password_reset_code(user):
+        flash('Unable to send email', 'error')
+        abort(409)
+    db.session.commit()
+    flash('A password reset code has been sent to your email.', 'success')
+    return {}
+
+
+@bp.route("/reset_password/<user_id>/<password_reset_code>", methods=['GET'])
+def reset_password(user_id, password_reset_code):
+    user = find_user(user_id)
+    if user.password_reset_code != password_reset_code:
+        return error_msg('Invalid password code')
+    params = {"password_reset_code": password_reset_code,
+              "user_id": user_id,
+              "email": user.email}
+    return redirect(f'/change_password?{urlencode(params)}')
+
+
+class ResetChangePasswordArgs(ma.Schema):
+    password_reset_code = ma.fields.String(required=True)
+    user_id = ma.fields.Int(required=True)
+    new_password = ma.fields.String(required=True)
+
+
+@bp.route('/reset_password_change', methods=['POST'])
+@bp.arguments(ResetChangePasswordArgs)
+def change_password(args):
+    password_reset_code = args['password_reset_code']
+    user_id = args['user_id']
+    new_password = args['new_password']
+    user = find_user(user_id)
+    if user.password_reset_code != password_reset_code:
+        flash('Invalid password code', 'error')
+        abort(409)
+    user.password = generate_password_hash(new_password, method='sha256')
+    user.password_reset_code = None
+    db.session.commit()
+    flash('Password changed', 'success')
+    return {}

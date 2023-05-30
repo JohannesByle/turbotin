@@ -12,10 +12,11 @@ import {
   useTheme,
 } from "@mui/material";
 import Typography from "@mui/material/Typography";
+import useScrollTrigger from "@mui/material/useScrollTrigger";
+import { isNull } from "lodash";
 import React, { useContext, useEffect } from "react";
 import { Outlet, To, useLocation, useNavigate } from "react-router-dom";
-import { isNull } from "lodash";
-import { LOGO_URL, TAB_OPACITY, APP_BAR_ID, TRoute } from "../consts";
+import { APP_BAR_ID, LOGO_URL, TAB_OPACITY, TRoute } from "../consts";
 import ROUTES from "../routes";
 import { AuthService } from "../service";
 import { usePromisify } from "../util/promisify";
@@ -39,6 +40,8 @@ const BaseView = (): JSX.Element => {
   const [authDlg, showAuthDlg] = usePromisify({ Dlg: AuthDlg });
   const user = useContext(UserContext);
 
+  const trigger = useScrollTrigger();
+
   const { palette } = useTheme();
   const buttonColor = palette.primary.contrastText;
 
@@ -51,9 +54,9 @@ const BaseView = (): JSX.Element => {
   }, [navigate, user, location.pathname]);
 
   return (
-    <>
+    <Box sx={{ width: "100%" }}>
       {authDlg}
-      <AppBar position="static" id={APP_BAR_ID}>
+      <AppBar position="sticky" id={APP_BAR_ID} elevation={trigger ? 4 : 0}>
         <Toolbar>
           <Img
             src={LOGO_URL}
@@ -106,7 +109,7 @@ const BaseView = (): JSX.Element => {
         </Toolbar>
       </AppBar>
       <Outlet />
-    </>
+    </Box>
   );
 };
 

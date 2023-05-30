@@ -6,14 +6,20 @@ db = SQLAlchemy()
 
 
 class Tobacco(db.Model):
+    id = sa.Column(sa.Integer(), primary_key=True, autoincrement=True)
     store = sa.Column(sa.String(100))
-    item = sa.Column(sa.String(150), primary_key=True)
+    item = sa.Column(sa.String(150))
+    link = sa.Column(sa.String(250))
+    prices = db.relationship('TobaccoPrice', lazy=True)
+
+
+class TobaccoPrice(db.Model):
+    id = sa.Column(sa.Integer, primary_key=True)
+    tobacco_id = db.Column(sa.Integer, db.ForeignKey(
+        'tobacco.id'), nullable=False)
     price = sa.Column(sa.String(100))
+    time = sa.Column(sa.DateTime())
     stock = sa.Column(sa.String(100))
-    link = sa.Column(sa.String(250), primary_key=True)
-    time = sa.Column(sa.DateTime(), primary_key=True)
-    brand = sa.Column(sa.String(500))
-    blend = sa.Column(sa.String(500))
 
 
 class User(UserMixin, db.Model):
@@ -24,8 +30,3 @@ class User(UserMixin, db.Model):
     email_code = sa.Column(sa.String(64))
     password_reset_code = sa.Column(sa.String(64))
     latest_auth_email = sa.Column(sa.DateTime())
-
-
-class Dummy(db.Model):
-    id = sa.Column(sa.Integer, primary_key=True)
-    value = sa.Column(sa.String(500))

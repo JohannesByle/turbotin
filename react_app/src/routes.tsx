@@ -1,13 +1,19 @@
 import {
   AccountCircle,
+  Error as ErrorIcon,
   Home,
   Notifications,
+  Password,
   SvgIconComponent,
   Timeline,
 } from "@mui/icons-material";
 import React from "react";
 import { TRoute } from "./consts";
 import Account from "./views/account/account";
+import ChangePassword from "./views/auth/changePassword";
+import ResetPassword from "./views/auth/resetPassword";
+import Error from "./views/error";
+import FullTable from "./views/fullTable";
 
 type TRouteDetails = {
   name: string;
@@ -20,7 +26,7 @@ const ROUTES: Record<TRoute, TRouteDetails> = {
   [TRoute.full_table]: {
     name: "Full Table",
     Icon: Home,
-    element: <></>,
+    element: <FullTable />,
   },
   [TRoute.individual_blends]: {
     name: "Price History",
@@ -36,6 +42,21 @@ const ROUTES: Record<TRoute, TRouteDetails> = {
     name: "",
     Icon: AccountCircle,
     element: <Account />,
+  },
+  [TRoute.reset_password]: {
+    name: "",
+    Icon: Password,
+    element: <ResetPassword />,
+  },
+  [TRoute.change_password]: {
+    name: "",
+    Icon: Password,
+    element: <ChangePassword />,
+  },
+  [TRoute.error]: {
+    name: "",
+    Icon: ErrorIcon,
+    element: <Error />,
   },
 };
 
