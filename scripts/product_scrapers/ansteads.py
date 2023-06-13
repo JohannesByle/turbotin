@@ -12,7 +12,7 @@ def scrape(pbar=None):
     while next_page:
         for element in soup.find_all("div", class_="product-block"):
             if element.find("h4"):
-                stock = "In Stock"
+                stock = ""
                 item = element.find("h4").get_text().strip()
                 link = element.find("a", class_="title").get("href")
             if element.find("div", class_="product-block-price"):
