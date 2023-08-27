@@ -1,5 +1,5 @@
 from . import get_html, add_item
-import json
+import time
 
 
 def scrape(pbar=None):
