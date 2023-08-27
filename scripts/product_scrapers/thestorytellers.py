@@ -13,16 +13,17 @@ def scrape(pbar=None):
     next_page = True
     while next_page:
         for product in soup.find_all("div", class_="CZ0KIs"):
-            stock = "Out of stock"
             if product.find("h3"):
                 item = product.find("h3").get_text()
             if product.find("span", class_="cfpn1d"):
                 price = product.find("span", class_="cfpn1d").get_text()
             if product.find("a", class_="JPDEZd"):
                 link = product.find("a", class_="JPDEZd").get("href")
-            if product.find("span", class_="ssAVQXP"):
-                if (product.find("span", class_="ssAVQXP").get_text() == "Add to Cart"):
+            if product.find("span", class_="sOzL01J"):
+                if (product.find("span", class_="sOzL01J").get_text() == "Add to Cart"):
                     stock = "In Stock"
+                if (product.find("span", class_="sOzL01J").get_text() == "Out of Stock"):
+                    stock = "Out of stock"
             item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
 
         for buttons in soup.find_all("button", class_="txtqbB"):
@@ -31,6 +32,7 @@ def scrape(pbar=None):
 
             if buttons.get_text() == "Load More":
                 next_page = True
+                time.sleep(wait_time)
                 page = page + 1
                 url = ("https://www.thestorytellerspipe.com/tinned-tobacco?page=" + str(page))
                 soup = get_html(url)
