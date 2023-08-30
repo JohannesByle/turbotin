@@ -32,7 +32,6 @@ def scrape(pbar=None):
 
             if buttons.get_text() == "Load More":
                 next_page = True
-                time.sleep(wait_time)
                 page = page + 1
                 url = ("https://www.thestorytellerspipe.com/tinned-tobacco?page=" + str(page))
                 soup = get_html(url)
