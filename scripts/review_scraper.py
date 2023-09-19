@@ -12,10 +12,10 @@ def get_html(url):
 def get_reviews():
     review_data = []
     soup = get_html("https://www.tobaccoreviews.com/browse/")
-    for tr in tqdm(soup.find_all("tr"), desc="Getting reviews"):
+    for tr in tqdm(soup.find_all("tr", class_="trTableRow"), desc="Getting reviews"):
         if tr.find("a"):
             sub_soup = get_html(tr.find("a").get("href"))
-            for sub_tr in sub_soup.find_all("tr"):
+            for sub_tr in sub_soup.find_all("tr", class_="trTableRow"):
                 if sub_tr.find("a") and sub_tr.find("a").get("href") != "#reviews":
                     brand = tr.find("a").get_text()
                     blend = sub_tr.find("a").get_text()
