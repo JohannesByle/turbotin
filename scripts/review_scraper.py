@@ -22,7 +22,7 @@ def get_reviews():
                     review_data.append({"brand": brand,
                                         "blend": blend,
                                         "link": sub_tr.find("a").get("href"),
-                                        "score": sub_tr.find_all("td")[2].get_text(),
+                                        "score": sub_tr.find_all("td")[2].get_text().strip(),
                                         "brand_link": tr.find("a").get("href"),
                                         "full_name": brand + " " + blend})
 
