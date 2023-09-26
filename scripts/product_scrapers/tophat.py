@@ -22,6 +22,8 @@ def scrape(pbar=None):
                 time.sleep(wait_time)
                 print("An Error Occurred: sleeping " + str(wait_time) + "s")
                 wait_time = wait_time + 1
+                if wait_time > 5:
+                    error = False
                 pass
         if new_soup.find("span", class_="productView-reviewLink"):
             for product in new_soup.find_all("div", class_="productView thumbnail-unclicked qty-box-visible"):
