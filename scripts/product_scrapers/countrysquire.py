@@ -19,9 +19,10 @@ def scrape(pbar=None):
             else:
                 if product.find("bdi"):
                     price = product.find("bdi").text
-            stock = "In Stock"
             if product.find("span", class_="ast-shop-product-out-of-stock"):
                 stock = "Out of stock"
+            else:
+                stock = "In Stock"
             link = product.find("a").get("href")
             item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
 
