@@ -1,5 +1,6 @@
 import {
   AccountCircle,
+  Email,
   Error as ErrorIcon,
   Home,
   Notifications,
@@ -14,6 +15,7 @@ import ChangePassword from "./views/auth/changePassword";
 import ResetPassword from "./views/auth/resetPassword";
 import Error from "./views/error";
 import FullTable from "./views/fullTable";
+import VerifyEmail from "./views/account/verifyEmail";
 
 type TRouteDetails = {
   name: string;
@@ -57,6 +59,11 @@ const ROUTES: Record<TRoute, TRouteDetails> = {
     name: "",
     Icon: ErrorIcon,
     element: <Error />,
+  },
+  [TRoute.verify_email]: {
+    name: "",
+    Icon: Email,
+    element: <VerifyEmail />,
   },
 };
 

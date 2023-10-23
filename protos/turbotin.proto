@@ -1,0 +1,124 @@
+syntax = "proto3";
+package turbotin;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "turbotin/protos";
+
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  SEVERITY_ERROR = 1;
+  SEVERITY_WARNING = 2;
+  SEVERITY_SUCCESS = 3;
+  SEVERITY_INFO = 4;
+}
+
+enum Store {
+  STORE_UNSPECIFIED = 0;
+  STORE_4NOGGINS = 1;
+  STORE_TOPHAT = 2;
+  STORE_CUPOJOES = 3;
+  STORE_MARSCIGARS = 4;
+  STORE_MILAN = 5;
+  STORE_SMOKINGPIPES = 6;
+  STORE_NICEASHCIGARS = 7;
+  STORE_IWANRIES = 8;
+  STORE_MCCRANIES = 9;
+  STORE_BOSWELL = 10;
+  STORE_LILBROWN = 11;
+  STORE_WINDYCITYCIGARS = 12;
+  STORE_BNB = 13;
+  STORE_THEBRIARY = 14;
+  STORE_KBVEN = 15;
+  STORE_TOBACCOPIPES = 16;
+  STORE_KINGSMOKING = 17;
+  STORE_COUNTRYSQUIRE = 18;
+  STORE_PIPESANDCIGARS = 19;
+  STORE_WATCHCITYCIGAR = 20;
+  STORE_THESTORYTELLERS = 21;
+  STORE_PAYLESS = 22;
+  STORE_HILANDSCIGARS = 23;
+  STORE_PIPEANDLEAF = 24;
+  STORE_CIGARSINTL = 25;
+  STORE_EACAREY = 26;
+  STORE_PIPENOOK = 27;
+  STORE_WILKE = 28;
+  STORE_SMOKERSHAVEN = 29;
+  STORE_BLACKCATCIGARS = 30;
+  STORE_ANSTEADS = 31;
+  STORE_CDMCIGARS = 32;
+  STORE_LJPERETTI = 33;
+  STORE_OUTWEST = 34;
+  STORE_JUST4HIM = 35;
+}
+
+message EmptyResponse {}
+
+message EmptyArgs {}
+
+service Auth {
+  rpc GetCurrentUser(EmptyArgs) returns (User) {}
+
+  rpc SignUp(AuthArgs) returns (EmptyResponse) {}
+  rpc Login(AuthArgs) returns (EmptyResponse) {}
+  rpc VerifyEmail(VerifyEmailArgs) returns (EmptyResponse) {}
+  rpc DeleteUser(EmptyArgs) returns (EmptyResponse) {}
+  rpc SendPasswordResetCode(SendResetPasswordArgs) returns (EmptyResponse) {}
+  rpc ResetPassword(ResetPasswordArgs) returns (EmptyResponse) {}
+  rpc GetEmail(ResetPasswordArgs) returns (Email) {}
+  rpc ChangePassword(ChangePasswordArgs) returns (EmptyResponse) {}
+}
+
+message AuthArgs {
+  string email = 1;
+  string password = 2;
+  bool remember = 3;
+}
+
+message VerifyEmailArgs {
+  int32 user_id = 1;
+  string code = 2;
+}
+
+message User {
+  string email = 1;
+  bool email_verified = 2;
+}
+
+message Email {
+  string email = 1;
+}
+
+message SendResetPasswordArgs {
+  string email = 1;
+}
+
+message ResetPasswordArgs {
+  int32 user_id = 1;
+  string code = 2;
+  string password = 3;
+}
+
+message ChangePasswordArgs {
+  string email = 1;
+  string old_password = 2;
+  string new_password = 3;
+}
+
+service Public {
+  rpc TodaysTobaccos(EmptyArgs) returns (ObsTobaccoList) {}
+}
+
+message ObsTobacco {
+  string item = 1;
+  Store store = 2;
+  string link = 3;
+  string price_str = 4;
+  google.protobuf.Timestamp time = 5;
+  bool in_stock = 6;
+  int32 tobacco_id = 7;
+}
+
+message ObsTobaccoList {
+  repeated ObsTobacco items = 1;
+}

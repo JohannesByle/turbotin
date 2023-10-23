@@ -1,22 +1,31 @@
-import { Box, Divider, useMediaQuery, useTheme } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import { ProductionQuantityLimits } from "@mui/icons-material";
+import { Box, Divider, Tooltip, useMediaQuery, useTheme } from "@mui/material";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { GridInitialStateCommunity } from "@mui/x-data-grid/models/gridStateCommunity";
+import { useQuery } from "@tanstack/react-query";
 import dayjs, { Dayjs } from "dayjs";
-import { isArray, isEmpty, isString } from "lodash";
-import React, { useEffect, useMemo, useState } from "react";
-import { APP_BAR_HEIGHT } from "../../consts";
-import { DataService, ObsTobacco } from "../../service";
+import { isEmpty, isString } from "lodash";
+import React, { useDeferredValue, useMemo, useState } from "react";
+import {
+  APP_BAR_HEIGHT,
+  EMPTY_ARR,
+  MS_PER_SECOND,
+  STORE_TO_NAME,
+} from "../../consts";
+import { todaysTobaccos } from "../../protos/turbotin-Public_connectquery";
+import { ObsTobacco } from "../../protos/turbotin_pb";
 import BoldSubStr from "../../util/components/boldSubStr";
 import {
   FILTER_COL,
   FILTER_FIELD,
   TFilter,
   calcFilterModel,
-  calcPrice,
 } from "./filterUtil";
 import Filters from "./filters";
+import { price } from "./util";
 
 type TColVisibilityModel = Partial<
-  Record<keyof ObsTobacco | typeof FILTER_FIELD, boolean>
+  Record<keyof ObsTobacco | typeof FILTER_FIELD | "price", boolean>
 >;
 
 const MOBILE_COLS: TColVisibilityModel = {
@@ -24,7 +33,7 @@ const MOBILE_COLS: TColVisibilityModel = {
   store: true,
   item: true,
   price: true,
-  stock: false,
+  inStock: false,
   time: false,
 };
 const DESKTOP_COLS: TColVisibilityModel = {
@@ -32,27 +41,97 @@ const DESKTOP_COLS: TColVisibilityModel = {
   store: true,
   item: true,
   price: true,
-  stock: true,
+  inStock: true,
   time: true,
 };
 
+function getRowId(row: ObsTobacco): number {
+  return row.tobaccoId;
+}
+
+const INITIAL_STATE: GridInitialStateCommunity = {
+  pagination: {
+    paginationModel: { pageSize: 50, page: 0 },
+  },
+};
+
 const FullTable = (): JSX.Element => {
-  const [loaded, setLoaded] = useState<boolean>(false);
-  const [tobaccos, setTobaccos] = useState<ObsTobacco[]>([]);
+  const { data, isFetching } = useQuery(todaysTobaccos.useQuery({}));
+  const tobaccos = data?.items ?? EMPTY_ARR;
+
   const [filter, setFilter] = useState<TFilter>({});
+
   const { breakpoints } = useTheme();
   const isMobile = useMediaQuery(breakpoints.down("md"));
   const isDesktop = useMediaQuery(breakpoints.up("xl"));
   const visibiltyModel = isMobile ? MOBILE_COLS : DESKTOP_COLS;
 
   const filterModel = useMemo(() => calcFilterModel(filter), [filter]);
+  const deferredFilterModel = useDeferredValue(filterModel);
 
-  useEffect(() => {
-    if (!loaded)
-      void DataService.postDataCurrentTobaccos()
-        .then((tobaccos) => isArray(tobaccos) && setTobaccos(tobaccos))
-        .finally(() => setLoaded(true));
-  }, [loaded]);
+  const columns: Array<GridColDef<ObsTobacco>> = useMemo(
+    () => [
+      FILTER_COL,
+      {
+        field: "store" satisfies keyof ObsTobacco,
+        flex: 1,
+        headerName: "Store",
+        hideable: false,
+        valueGetter: ({ row }) => STORE_TO_NAME[row.store],
+      },
+      {
+        field: "item" satisfies keyof ObsTobacco,
+        flex: 3,
+        headerName: "Name",
+        renderCell: ({ row: { item, link } }) => (
+          <a href={link} target={"_blank"} rel={"noreferrer"}>
+            {!isString(filter.item) ||
+            isEmpty(filter.item) ||
+            !isString(item) ? (
+              item
+            ) : (
+              <BoldSubStr str={item} subStr={filter.item} />
+            )}
+          </a>
+        ),
+        hideable: false,
+      },
+
+      {
+        field: "price",
+        flex: 1,
+        headerName: "Price",
+        hideable: false,
+        valueGetter: ({ row }) => price(row),
+        renderCell: ({ row }) => row.priceStr,
+        type: "number",
+      },
+      {
+        field: "time" satisfies keyof ObsTobacco,
+        flex: 1,
+        headerName: "Last updated",
+        valueGetter: ({ row: { time } }) =>
+          dayjs((Number(time?.seconds) ?? 0) * MS_PER_SECOND),
+        valueFormatter: ({ value }) => (value as Dayjs).fromNow(),
+        hideable: false,
+      },
+      {
+        field: "inStock" satisfies keyof ObsTobacco,
+        width: 40,
+        headerName: "",
+        hideable: false,
+        renderCell: ({ row }) =>
+          row.inStock ? (
+            <></>
+          ) : (
+            <Tooltip title="Out of stock">
+              <ProductionQuantityLimits color="error" />
+            </Tooltip>
+          ),
+      },
+    ],
+    [filter.item]
+  );
 
   return (
     <Box
@@ -75,68 +154,19 @@ const FullTable = (): JSX.Element => {
         sx={{ width: "100%", height: "100%", background: "white" }}
       >
         <DataGrid<ObsTobacco>
-          columns={[
-            FILTER_COL,
-            {
-              field: "store" satisfies keyof ObsTobacco,
-              flex: 1,
-              headerName: "Store",
-              hideable: false,
-            },
-            {
-              field: "item" satisfies keyof ObsTobacco,
-              flex: 3,
-              headerName: "Name",
-              renderCell: ({ row: { item, link } }) => (
-                <a href={link} target={"_blank"} rel={"noreferrer"}>
-                  {!isString(filter.item) ||
-                  isEmpty(filter.item) ||
-                  !isString(item) ? (
-                    item
-                  ) : (
-                    <BoldSubStr str={item} subStr={filter.item} />
-                  )}
-                </a>
-              ),
-              hideable: false,
-            },
-            {
-              field: "stock" satisfies keyof ObsTobacco,
-              flex: 1,
-              headerName: "Status",
-              hideable: false,
-            },
-            {
-              field: "price" satisfies keyof ObsTobacco,
-              flex: 1,
-              valueGetter: ({ row }) => calcPrice(row),
-              renderCell: ({ row: { price } }) => price,
-              headerName: "Price",
-              hideable: false,
-            },
-            {
-              field: "time" satisfies keyof ObsTobacco,
-              flex: 1,
-              headerName: "Last updated",
-              valueGetter: ({ row: { time } }) => dayjs(time),
-              valueFormatter: ({ value }) => (value as Dayjs).fromNow(),
-              hideable: false,
-            },
-          ]}
+          columns={columns}
           rows={tobaccos}
-          loading={!loaded}
+          loading={isFetching}
           checkboxSelection={!isMobile}
           density={"compact"}
           columnVisibilityModel={visibiltyModel}
-          filterModel={filterModel}
-          initialState={{
-            pagination: {
-              paginationModel: { pageSize: 50, page: 0 },
-            },
-          }}
+          filterModel={deferredFilterModel}
+          initialState={INITIAL_STATE}
+          getRowId={getRowId}
           disableColumnFilter
           disableColumnSelector
           autoPageSize
+          disableColumnMenu
         />
       </Box>
     </Box>

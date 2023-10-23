@@ -1,12 +1,7 @@
 import { GridColDef, GridFilterModel } from "@mui/x-data-grid";
-import { every, isArray, isString, isUndefined } from "lodash";
-import { DOLLAR_REGEX } from "../../consts";
-import { ObsTobacco } from "../../service";
-
-export const calcPrice = ({ price }: ObsTobacco): number => {
-  const result = price?.match(DOLLAR_REGEX);
-  return isArray(result) && result.length > 1 ? Number(result[1]) : Infinity;
-};
+import { every, isString, isUndefined } from "lodash";
+import { ObsTobacco, Store } from "../../protos/turbotin_pb";
+import { price } from "./util";
 
 export const FILTER_FIELD = "74526c2d-cbac-4f07-ba46-223744b40912";
 const FILTER_OP = "2a6aef33-ef8f-4070-9044-866b211b538b";
@@ -41,8 +36,9 @@ export type TFilter = {
   item?: string;
   maxPrice?: number;
   minPrice?: number;
-  stores?: Set<string>;
+  stores?: Set<Store>;
   inStock?: boolean;
+  hasPrice?: boolean;
 };
 
 export const FILTER_FNS: Record<
@@ -53,9 +49,9 @@ export const FILTER_FNS: Record<
     isString(item) &&
     isString(filter.item) &&
     item.toLowerCase().includes(filter.item.toLowerCase()),
-  maxPrice: (row, { maxPrice = NaN }) => calcPrice(row) <= maxPrice,
-  minPrice: (row, { minPrice = NaN }) => calcPrice(row) >= minPrice,
-  stores: ({ store }, { stores = new Set() }) =>
-    isString(store) && stores.has(store),
-  inStock: ({ stock }, { inStock = false }) => !inStock || stock === "In Stock",
+  maxPrice: (row, { maxPrice = NaN }) => price(row) <= maxPrice,
+  minPrice: (row, { minPrice = NaN }) => price(row) >= minPrice,
+  stores: ({ store }, { stores = new Set() }) => stores.has(store),
+  inStock: (row, { inStock = false }) => !inStock || row.inStock,
+  hasPrice: (row, { hasPrice = false }) => !hasPrice || price(row) > 0,
 };

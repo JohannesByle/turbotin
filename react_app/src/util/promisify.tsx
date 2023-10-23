@@ -1,16 +1,16 @@
 import { isFunction, isUndefined } from "lodash";
-import React, { ComponentType, useCallback, useMemo, useState } from "react";
+import React, { ComponentType, useMemo, useRef, useState } from "react";
 
-export const DLG_CANCEL_ERROR = "{ec51159b-5e3e-47d8-81be-7f4398179957}";
+const DLG_CANCEL_ERROR = Symbol("Dlg cancel");
 
-export const ignoreCancel = (error: unknown): void => {
-  if (error !== DLG_CANCEL_ERROR) throw error;
-};
+window.addEventListener("unhandledrejection", function (e) {
+  if (e.reason === DLG_CANCEL_ERROR) e.preventDefault();
+});
 
-type TDlgState<T = void> = {
+type TDlgState<T = void, Props extends TDlgProps<T> = TDlgProps<T>> = {
   resolve?: (value: T) => void;
   reject?: (reason: unknown) => void;
-  open: boolean;
+  props?: Partial<TNonDlg<Props>>;
 };
 
 export type TDlgProps<T = void> = {
@@ -21,63 +21,36 @@ export type TDlgProps<T = void> = {
 
 type TNonDlg<Props extends TDlgProps<unknown>> = Omit<Props, keyof TDlgProps>;
 
-type TBaseParams<T, Props extends TDlgProps<T>> = {
-  Dlg: ComponentType<Props>;
-  unmountOnClose?: boolean;
-};
+export function usePromisify<T, Props extends TDlgProps<T>>(
+  Dlg: ComponentType<Props>
+): [JSX.Element | null, (props: Partial<TNonDlg<Props>>) => Promise<T>] {
+  const [state, setState] = useState<TDlgState<T>>({});
 
-type TParams<T, Props extends TDlgProps<T>> = TDlgProps<T> extends Props
-  ? TBaseParams<T, Props>
-  : TBaseParams<T, Props> & { defaultProps: TNonDlg<Props> };
+  const dlg = useMemo(() => {
+    const { props, reject, resolve } = state;
+    if (isUndefined(props) || isUndefined(reject) || isUndefined(resolve))
+      return <></>;
+    return (
+      <Dlg
+        {...(props as Props)}
+        open={true}
+        onSubmit={(value: T) => {
+          setState({});
+          if (isFunction(resolve)) resolve(value);
+        }}
+        onCancel={() => {
+          setState({});
+          if (isFunction(reject)) reject(DLG_CANCEL_ERROR);
+        }}
+      />
+    );
+  }, [Dlg, state]);
 
-export function usePromisify<T, TProps extends TDlgProps<T>>(
-  params: TParams<T, TProps>
-): [
-  JSX.Element | null,
-  TDlgProps<T> extends TProps
-    ? () => Promise<T>
-    : (props?: Partial<TNonDlg<TProps>>) => Promise<T>
-] {
-  const { Dlg, unmountOnClose = true } = params;
-  const defaultProps = "defaultProps" in params ? params.defaultProps : null;
-  const [state, setState] = useState<TDlgState<T>>({ open: false });
-  const [props, setProps] = useState(defaultProps);
-  const { open, reject, resolve } = state;
-
-  const onSubmit = useCallback(
-    (value: T) => {
-      setState((prev) => ({ ...prev, open: false }));
-      if (isFunction(resolve)) resolve(value);
-    },
-    [resolve]
-  );
-
-  const onCancel = useCallback(() => {
-    setState((prev) => ({ ...prev, open: false }));
-    if (isFunction(reject)) reject(DLG_CANCEL_ERROR);
-  }, [reject]);
-
-  const dlg = useMemo(
-    () =>
-      open || !unmountOnClose ? (
-        <Dlg
-          {...(props as TProps)}
-          open={open}
-          onSubmit={onSubmit}
-          onCancel={onCancel}
-        />
-      ) : null,
-    [Dlg, onCancel, onSubmit, open, props, unmountOnClose]
-  );
-
-  const showDlg = useCallback(
-    async (props?: Partial<TNonDlg<TProps>>) =>
+  const { current: showDlg } = useRef(
+    async (props: Partial<TNonDlg<Props>>) =>
       await new Promise<T>((resolve, reject) => {
-        if (!isUndefined(props))
-          setProps((prev) => ({ ...prev, ...(props as TProps) }));
-        setState({ open: true, resolve, reject });
-      }),
-    []
+        setState({ resolve, reject, props });
+      })
   );
 
   return [dlg, showDlg];

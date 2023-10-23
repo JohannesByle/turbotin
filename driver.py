@@ -116,4 +116,5 @@ def clean_for_archive(df):
 
 
 if __name__ == "__main__":
+    # print(get_reviews())
     update_website()

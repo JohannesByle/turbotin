@@ -2,6 +2,7 @@ import { AccountCircle, Login } from "@mui/icons-material";
 import {
   AppBar,
   Box,
+  CircularProgress,
   IconButton,
   Tab,
   TabProps,
@@ -13,14 +14,14 @@ import {
 } from "@mui/material";
 import Typography from "@mui/material/Typography";
 import useScrollTrigger from "@mui/material/useScrollTrigger";
+import { useQuery } from "@tanstack/react-query";
 import { isNull } from "lodash";
-import React, { useContext, useEffect } from "react";
+import React, { useEffect } from "react";
 import { Outlet, To, useLocation, useNavigate } from "react-router-dom";
 import { APP_BAR_ID, LOGO_URL, TAB_OPACITY, TRoute } from "../consts";
+import * as auth from "../protos/turbotin-Auth_connectquery";
 import ROUTES from "../routes";
-import { AuthService } from "../service";
 import { usePromisify } from "../util/promisify";
-import { UserContext } from "../util/userContext";
 import AuthDlg from "./auth/authDlg";
 
 const Img = styled("img")``;
@@ -37,8 +38,9 @@ const tabProps = (route: TRoute): TabProps => {
 const BaseView = (): JSX.Element => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [authDlg, showAuthDlg] = usePromisify({ Dlg: AuthDlg });
-  const user = useContext(UserContext);
+  const [authDlg, showAuthDlg] = usePromisify(AuthDlg);
+  const { data: user, isLoading } = useQuery(auth.getCurrentUser.useQuery());
+  const isLoggedIn = (user?.email ?? "") !== "";
 
   const trigger = useScrollTrigger();
 
@@ -83,26 +85,23 @@ const BaseView = (): JSX.Element => {
             ))}
           </Tabs>
           <Box sx={{ mr: "auto" }} />
-          {isNull(user) ? (
-            <Tooltip title={"Login"}>
-              <IconButton onClick={() => void showAuthDlg()}>
-                <Login sx={{ color: buttonColor, opacity: TAB_OPACITY }} />
-              </IconButton>
-            </Tooltip>
-          ) : (
+          {isLoading ? (
+            <CircularProgress sx={{ color: buttonColor }} size={"32px"} />
+          ) : isLoggedIn ? (
             <Tooltip title={"My Account"}>
-              <IconButton
-                onClick={() => {
-                  void AuthService.postAuthGetCurrentUser();
-                  navigate(my_account);
-                }}
-              >
+              <IconButton onClick={() => navigate(my_account)}>
                 <AccountCircle
                   sx={{
                     color: buttonColor,
                     opacity: location.pathname === my_account ? 1 : TAB_OPACITY,
                   }}
                 />
+              </IconButton>
+            </Tooltip>
+          ) : (
+            <Tooltip title={"Login"}>
+              <IconButton onClick={() => void showAuthDlg({})}>
+                <Login sx={{ color: buttonColor, opacity: TAB_OPACITY }} />
               </IconButton>
             </Tooltip>
           )}

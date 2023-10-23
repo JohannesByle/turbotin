@@ -5,16 +5,15 @@ import "@fontsource/roboto/700.css";
 import CssBaseline from "@mui/material/CssBaseline";
 import { cyan, grey, yellow } from "@mui/material/colors";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import React, { useCallback, useState } from "react";
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import ROUTES from "./routes";
-import { UserDetails } from "./service";
-import { Flash, TFlash, doSetFlashes, useFlashesCookie } from "./util/flash";
-import { useInterceptors } from "./util/interceptors";
-import { UserContext } from "./util/userContext";
-import BaseView from "./views/baseView";
-import relativeTime from "dayjs/plugin/relativeTime";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import React from "react";
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import { MS_PER_MINUTE } from "./consts";
+import ROUTES from "./routes";
+import { FlashesProvider } from "./util/flash";
+import BaseView from "./views/baseView";
 
 dayjs.extend(relativeTime);
 
@@ -29,6 +28,15 @@ export const router = createBrowserRouter([
   },
 ]);
 
+const client = new QueryClient({
+  defaultOptions: {
+    queries: {
+      cacheTime: 5 * MS_PER_MINUTE,
+      staleTime: 5 * MS_PER_MINUTE,
+    },
+  },
+});
+
 const theme = createTheme({
   palette: {
     primary: { main: cyan[800], contrastText: "white" },
@@ -39,28 +47,15 @@ const theme = createTheme({
 });
 
 function App(): JSX.Element {
-  const [user, setUser] = useState<UserDetails | null>(null);
-  const [flashes, setFlashes] = useState<Map<string, TFlash>>(new Map());
-
-  const setFlashesStr = useCallback(
-    (str: string) => doSetFlashes(str, setFlashes),
-    []
-  );
-
-  useFlashesCookie(setFlashesStr);
-
-  useInterceptors(setUser, setFlashesStr);
-
   return (
-    <div className="App">
-      <ThemeProvider theme={theme}>
-        <UserContext.Provider value={user}>
-          <Flash flashes={flashes} setFlashes={setFlashes} />
+    <ThemeProvider theme={theme}>
+      <QueryClientProvider client={client}>
+        <FlashesProvider>
           <CssBaseline />
           <RouterProvider router={router} fallbackElement={<></>} />
-        </UserContext.Provider>
-      </ThemeProvider>
-    </div>
+        </FlashesProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

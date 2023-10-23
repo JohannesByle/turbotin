@@ -1,66 +1,55 @@
-import { Box, TextField } from "@mui/material";
+import LoadingButton from "@mui/lab/LoadingButton";
+import { Box } from "@mui/material";
+import { useMutation } from "@tanstack/react-query";
 import React, { useState } from "react";
-import { AuthService } from "../../service";
-import LoadingButton from "../../util/components/LoadingButton";
-import PasswordEdit, { isValidPassword } from "./passwordEdit";
-import { usePromisify } from "../../util/promisify";
-import AuthDlg from "./authDlg";
-import { redirect } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { TRoute } from "../../consts";
+import * as auth from "../../protos/turbotin-Auth_connectquery";
+import PasswordEdit, { isValidPassword } from "./passwordEdit";
 
 const ChangePassword = (): JSX.Element => {
   const [password, setPassword] = useState<string>("");
-  const [authDlg, showAuthDlg] = usePromisify({ Dlg: AuthDlg });
-  const [hideSelf, setHideSelf] = useState<boolean>(false);
+  const navigate = useNavigate();
 
-  const params = new URLSearchParams(window.location.search);
-  const user_id = Number(params.get("user_id"));
-  const password_reset_code = String(params.get("password_reset_code"));
-  const email = String(params.get("email"));
+  const { code, user_id } = useParams();
+  const { mutateAsync: resetPassword, isLoading } = useMutation(
+    auth.resetPassword.useMutation()
+  );
 
   return (
-    <>
-      {authDlg}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          width: "100%",
-          mt: "25vh",
-          visibility: hideSelf ? "hidden" : undefined,
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        width: "100%",
+        mt: "25vh",
+      }}
+    >
+      <PasswordEdit
+        password={password}
+        setPassword={setPassword}
+        label={"New Password"}
+        autoComplete={"new-password"}
+      />
+      <LoadingButton
+        onClick={async () => {
+          await resetPassword({
+            code,
+            userId: Number(user_id),
+            password,
+          });
+          navigate(TRoute.full_table);
         }}
+        sx={{ m: 1 }}
+        variant={"contained"}
+        disabled={!isValidPassword(password)}
+        loading={isLoading}
       >
-        <TextField
-          value={email}
-          sx={{ display: "none" }}
-          autoComplete={"username"}
-        />
-        <PasswordEdit
-          password={password}
-          setPassword={setPassword}
-          label={"New Password"}
-          autoComplete={"new-password"}
-        />
-        <LoadingButton
-          onClick={async () => {
-            await AuthService.postAuthResetPasswordChange({
-              user_id,
-              password_reset_code,
-              new_password: password,
-            });
-            setHideSelf(true);
-            void showAuthDlg().then(() => redirect(TRoute.my_account));
-          }}
-          sx={{ m: 1 }}
-          variant={"contained"}
-          disabled={!isValidPassword(password)}
-        >
-          Change Password
-        </LoadingButton>
-      </Box>
-    </>
+        Change Password
+      </LoadingButton>
+    </Box>
   );
 };
 

@@ -71,6 +71,7 @@ const PasswordEdit = (props: TProps): JSX.Element => {
           </IconButton>
         ),
       }}
+      name={autoComplete}
     />
   );
 };

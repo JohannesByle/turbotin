@@ -37,3 +37,7 @@
 /flask_app/private_config.py
 /data/*
 /port_data.py
+*.env
+/go_app/gen/
+/go_app/protos/
+/react_app/src/protos/

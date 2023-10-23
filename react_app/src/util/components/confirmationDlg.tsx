@@ -8,7 +8,7 @@ import {
   DialogContentText,
   DialogTitle,
 } from "@mui/material";
-import LoadingButton from "./LoadingButton";
+import LoadingButton from "@mui/lab/LoadingButton";
 
 type TProps = TDlgProps & {
   title: string;

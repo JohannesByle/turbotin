@@ -8,9 +8,10 @@ import {
   Slider,
   TextField,
 } from "@mui/material";
-import { isArray, isEmpty, isString, uniq } from "lodash";
+import { isArray, isEmpty, uniq } from "lodash";
 import React, { useMemo } from "react";
-import { ObsTobacco } from "../../service";
+import { NAME_TO_STORE, STORE_TO_NAME } from "../../consts";
+import { ObsTobacco } from "../../protos/turbotin_pb";
 import { TSetState, formatUSD } from "../../util";
 import { TFilter } from "./filterUtil";
 
@@ -20,14 +21,14 @@ type TProps = {
   setFilter: TSetState<TFilter>;
 };
 
-const MAX_PRICE = 50;
+const MAX_PRICE = 75;
 const MIN_PRICE = 0;
 
 const Filters = (props: TProps): JSX.Element => {
   const { filter, setFilter, rows } = props;
 
   const stores = useMemo(
-    () => uniq(rows.map(({ store }) => store).filter(isString)),
+    () => uniq(rows.map((s) => STORE_TO_NAME[s.store])),
     [rows]
   );
 
@@ -78,20 +79,34 @@ const Filters = (props: TProps): JSX.Element => {
         }
         label="In stock"
       />
+      <FormControlLabel
+        control={
+          <Checkbox
+            value={Boolean(filter.inStock)}
+            onChange={(_, hasPrice) =>
+              setFilter((prev) => ({ ...prev, hasPrice }))
+            }
+          />
+        }
+        label="Has price"
+      />
       <Autocomplete
         multiple
         options={stores}
-        value={[...(filter.stores ?? [])]}
+        value={[...(filter.stores ?? [])].map((s) => STORE_TO_NAME[s])}
         renderInput={(params) => (
           <TextField
             {...params}
             sx={{ backgroundColor: "white", width: "100%" }}
+            label="Store"
           />
         )}
         onChange={(_, stores) =>
           setFilter((prev) => ({
             ...prev,
-            stores: isEmpty(stores) ? undefined : new Set(stores),
+            stores: isEmpty(stores)
+              ? undefined
+              : new Set(stores.map((s) => NAME_TO_STORE[s])),
           }))
         }
         limitTags={1}

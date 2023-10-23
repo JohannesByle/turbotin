@@ -1,12 +1,6 @@
 import { TextField } from "@mui/material";
 import { debounce, isArray, isString } from "lodash";
-import React, {
-  Dispatch,
-  SetStateAction,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { Dispatch, SetStateAction, useEffect, useMemo } from "react";
 
 const EMAIL_REGEX = "^[A-z0-9+_.-]+@[A-z0-9.-]+$";
 const EMAIL_HELPER_TEXT = "Please provide a valid email";
@@ -17,15 +11,15 @@ export const isValidEmail = (email: string | null): email is string =>
 type TProps = {
   email: string;
   setEmail: Dispatch<SetStateAction<string>>;
+  error: string | null;
+  setError: Dispatch<SetStateAction<string | null>>;
   hideErrors?: boolean;
-  customError?: string;
 };
 
 const EmailEdit = (props: TProps): JSX.Element => {
-  const { email, setEmail, hideErrors = false, customError } = props;
-  const [emailError, setEmailError] = useState<string | null>();
+  const { email, setEmail, error, setError, hideErrors = false } = props;
 
-  const debounceEmailError = useMemo(() => debounce(setEmailError, 500), []);
+  const debounceEmailError = useMemo(() => debounce(setError, 500), [setError]);
 
   useEffect(() => debounceEmailError.cancel(), [debounceEmailError]);
 
@@ -38,12 +32,14 @@ const EmailEdit = (props: TProps): JSX.Element => {
         setEmail(email);
         if (isValidEmail(email)) {
           debounceEmailError.cancel();
-          setEmailError(null);
+          setError(null);
         } else debounceEmailError(EMAIL_HELPER_TEXT);
       }}
       label={"Email"}
-      error={isString(customError) || (!hideErrors && isString(emailError))}
-      helperText={customError ?? (!hideErrors && emailError)}
+      error={!hideErrors && isString(error)}
+      helperText={!hideErrors && error}
+      autoComplete="email"
+      name="email"
     />
   );
 };

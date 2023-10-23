@@ -1,27 +1,30 @@
+import LoadingButton from "@mui/lab/LoadingButton";
 import {
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  TextField,
   useTheme,
 } from "@mui/material";
-import { AxiosError } from "axios";
-import { StatusCodes } from "http-status-codes";
-import React, { useCallback, useContext, useState } from "react";
-import { AuthService } from "../../service";
-import LoadingButton from "../../util/components/LoadingButton";
-import { TDlgProps, ignoreCancel } from "../../util/promisify";
-import { UserContext } from "../../util/userContext";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import React, { useCallback, useState } from "react";
+import * as auth from "../../protos/turbotin-Auth_connectquery";
+import { getCurrentUser } from "../../protos/turbotin-Auth_connectquery";
+import { TDlgProps } from "../../util/promisify";
 import PasswordEdit from "../auth/passwordEdit";
+import { useUser } from "../../util";
 
 const EditPasswordDlg = (props: TDlgProps): JSX.Element => {
   const { onCancel, onSubmit, open } = props;
-  const user = useContext(UserContext);
+  const user = useUser();
   const [oldPassword, setOldPassword_] = useState<string>("");
   const [newPassword, setNewPassword] = useState<string>("");
   const [error, setError] = useState<string | undefined>(undefined);
   const { palette } = useTheme();
+
+  const { mutateAsync: changePassword, isLoading } = useMutation(
+    auth.changePassword.useMutation()
+  );
 
   const setOldPassword: typeof setOldPassword_ = useCallback((password) => {
     setOldPassword_(password);
@@ -35,11 +38,6 @@ const EditPasswordDlg = (props: TDlgProps): JSX.Element => {
         Change password
       </DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <TextField
-          value={user.email}
-          sx={{ display: "none" }}
-          autoComplete={"username"}
-        />
         <PasswordEdit
           password={oldPassword}
           setPassword={setOldPassword}
@@ -56,19 +54,16 @@ const EditPasswordDlg = (props: TDlgProps): JSX.Element => {
       </DialogContent>
       <DialogActions>
         <LoadingButton
-          onClick={async () =>
-            await AuthService.postAuthChangePassword({
-              new_password: newPassword,
-              old_password: oldPassword,
-            })
-              .then(() => onSubmit())
-              .catch((e: AxiosError) => {
-                if (e.status === StatusCodes.CONFLICT)
-                  setError("Incorrect password");
-                else ignoreCancel(e);
-              })
-          }
+          onClick={async () => {
+            await changePassword({
+              oldPassword,
+              newPassword,
+              email: user.email,
+            });
+            onSubmit();
+          }}
           variant={"contained"}
+          loading={isLoading}
         >
           Submit
         </LoadingButton>

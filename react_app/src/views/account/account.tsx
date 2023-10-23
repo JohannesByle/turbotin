@@ -1,16 +1,10 @@
-import {
-  Check,
-  Delete,
-  Edit,
-  Email,
-  Logout,
-  Warning,
-} from "@mui/icons-material";
+import { Delete, Edit, Email, Logout, Warning } from "@mui/icons-material";
 import {
   Avatar,
   Box,
   Card,
   CardContent,
+  CircularProgress,
   Divider,
   IconButton,
   List,
@@ -19,37 +13,40 @@ import {
   Tooltip,
   useTheme,
 } from "@mui/material";
-import { isNull } from "lodash";
-import React, { useContext } from "react";
-import { useNavigate } from "react-router-dom";
-import { TRoute } from "../../consts";
-import { AuthService } from "../../service";
-import { ignoreCancel, usePromisify } from "../../util/promisify";
-import { UserContext } from "../../util/userContext";
-import EditPasswordDlg from "./editPasswordDlg";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import cookie from "cookie";
+import { isUndefined } from "lodash";
+import React from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { JWT_KEY, TRoute } from "../../consts";
+import * as auth from "../../protos/turbotin-Auth_connectquery";
 import ConfirmationDlg from "../../util/components/confirmationDlg";
+import { usePromisify } from "../../util/promisify";
+import EditPasswordDlg from "./editPasswordDlg";
 
 const Account = (): JSX.Element => {
-  const user = useContext(UserContext);
-  const [passwordDlg, showPasswordDlg] = usePromisify({ Dlg: EditPasswordDlg });
-  const [confirmDeleteDlg, showConfirmDeleteDlg] = usePromisify({
-    Dlg: ConfirmationDlg,
-    defaultProps: {
-      body: "This cannot be undone",
-      submitMsg: "Delete",
-      title: "Delete account?",
-    },
-  });
+  const { data: user } = useQuery(auth.getCurrentUser.useQuery());
+  const { mutateAsync: deleteUser, isLoading: isDeleting } = useMutation(
+    auth.deleteUser.useMutation()
+  );
+
+  const [passwordDlg, showPasswordDlg] = usePromisify(EditPasswordDlg);
+  const [confirmDeleteDlg, showConfirmDeleteDlg] =
+    usePromisify(ConfirmationDlg);
   const { palette } = useTheme();
   const navigate = useNavigate();
 
-  if (isNull(user)) return <></>;
+  const client = useQueryClient();
+
+  if (isUndefined(user)) return <></>;
+  if (user.email === "") return <Navigate to={TRoute.full_table} />;
+
   const items: Array<[JSX.Element, JSX.Element]> = [
     [
       <Email key={0} />,
       <>
         {user.email}
-        {user.email_verified || (
+        {user.emailVerified || (
           <Tooltip title={"Email not verified!"}>
             <IconButton>
               <Warning color={"error"} />
@@ -59,7 +56,7 @@ const Account = (): JSX.Element => {
       </>,
     ],
     [
-      <IconButton key={0} onClick={() => void showPasswordDlg()}>
+      <IconButton key={0} onClick={() => void showPasswordDlg({})}>
         <Edit sx={{ color: palette.primary.contrastText }} />
       </IconButton>,
       <>Password</>,
@@ -67,12 +64,16 @@ const Account = (): JSX.Element => {
     [
       <IconButton
         key={0}
-        onClick={() =>
-          void AuthService.getAuthLogout().then(() => {
-            void AuthService.postAuthGetCurrentUser().catch(() => null);
-            navigate(TRoute.full_table);
-          })
-        }
+        onClick={async () => {
+          document.cookie = cookie.serialize(JWT_KEY, "", {
+            expires: new Date(),
+            path: `/${auth.Auth.typeName}`,
+          });
+          await client.invalidateQueries({
+            queryKey: auth.getCurrentUser.getQueryKey(),
+          });
+          navigate(TRoute.full_table);
+        }}
       >
         <Logout sx={{ color: palette.primary.contrastText }} />
       </IconButton>,
@@ -81,15 +82,24 @@ const Account = (): JSX.Element => {
     [
       <IconButton
         key={0}
-        onClick={() =>
-          void showConfirmDeleteDlg().then(async () => {
-            await AuthService.getAuthDeleteAccount().catch(ignoreCancel);
-            await AuthService.postAuthGetCurrentUser().catch(() => null);
-            navigate(TRoute.full_table);
-          })
-        }
+        onClick={async () => {
+          await showConfirmDeleteDlg({
+            body: "This cannot be undone",
+            submitMsg: "Delete",
+            title: "Delete account?",
+          });
+          await deleteUser({});
+          await client.invalidateQueries({
+            queryKey: auth.getCurrentUser.getQueryKey(),
+          });
+          navigate(TRoute.full_table);
+        }}
       >
-        <Delete sx={{ color: palette.primary.contrastText }} />
+        {isDeleting ? (
+          <CircularProgress />
+        ) : (
+          <Delete sx={{ color: palette.primary.contrastText }} />
+        )}
       </IconButton>,
       <>Delete account</>,
     ],

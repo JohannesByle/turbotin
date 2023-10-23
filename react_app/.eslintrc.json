@@ -41,7 +41,14 @@
     "no-void": "off",
     "@typescript-eslint/no-unsafe-member-access": "off",
     "@typescript-eslint/no-unsafe-call": "off",
-    "@typescript-eslint/naming-convention": "off"
+    "@typescript-eslint/naming-convention": "off",
+    "@typescript-eslint/no-misused-promises": [
+      "warn",
+      {
+        "checksVoidReturn": false
+      }
+    ],
+    "@typescript-eslint/unbound-method": ["off"]
   },
   "settings": { "react": { "version": "detect" } }
 }
