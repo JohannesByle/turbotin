@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/promise-function-async */
 import {
   AccountCircle,
   Email,
@@ -8,14 +9,15 @@ import {
   SvgIconComponent,
   Timeline,
 } from "@mui/icons-material";
-import React from "react";
+import React, { lazy } from "react";
 import { TRoute } from "./consts";
-import Account from "./views/account/account";
-import ChangePassword from "./views/auth/changePassword";
-import ResetPassword from "./views/auth/resetPassword";
-import Error from "./views/error";
-import FullTable from "./views/fullTable";
-import VerifyEmail from "./views/account/verifyEmail";
+
+const Account = lazy(() => import("./views/account/account"));
+const ChangePassword = lazy(() => import("./views/auth/changePassword"));
+const ResetPassword = lazy(() => import("./views/auth/resetPassword"));
+const Error = lazy(() => import("./views/error"));
+const FullTable = lazy(() => import("./views/fullTable"));
+const VerifyEmail = lazy(() => import("./views/account/verifyEmail"));
 
 type TRouteDetails = {
   name: string;

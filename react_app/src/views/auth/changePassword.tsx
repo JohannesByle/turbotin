@@ -3,7 +3,7 @@ import { Box } from "@mui/material";
 import { useMutation } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { TRoute } from "../../consts";
+import { CENTER_PAGE_SX, TRoute } from "../../consts";
 import * as auth from "../../protos/turbotin-Auth_connectquery";
 import PasswordEdit, { isValidPassword } from "./passwordEdit";
 
@@ -17,16 +17,7 @@ const ChangePassword = (): JSX.Element => {
   );
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        width: "100%",
-        mt: "25vh",
-      }}
-    >
+    <Box sx={CENTER_PAGE_SX}>
       <PasswordEdit
         password={password}
         setPassword={setPassword}

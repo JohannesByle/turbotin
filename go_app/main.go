@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"turbotin/protos/protosconnect"
@@ -27,20 +28,33 @@ const (
 	reset   = "\033[0m"
 )
 
-const (
-	STATIC_DIR = "../react_app/build"
+var (
+	STATIC_DIR = path.Clean("../react_app/build")
+	INDEX_FILE = path.Clean(path.Join(STATIC_DIR, "/index.html"))
 )
 
 func fileHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
-		_, err := os.Stat(path.Join(STATIC_DIR, req.URL.Path))
+		filePath := path.Clean(path.Join(STATIC_DIR, req.URL.Path))
+		info, err := os.Stat(filePath)
 		args := util.LogArgs{Path: req.URL.Path}
 		start := time.Now()
-		if errors.Is(err, os.ErrNotExist) {
-			http.ServeFile(writer, req, path.Join(STATIC_DIR, "/index.html"))
+
+		if errors.Is(err, os.ErrNotExist) || !strings.HasPrefix(filePath, STATIC_DIR) || info.IsDir() {
+			http.ServeFile(writer, req, INDEX_FILE)
 		} else {
-			h.ServeHTTP(writer, req)
+			allowBr := strings.Contains(req.Header.Get("Accept-Encoding"), "br")
+			brFile := filePath + ".br"
+			_, err := os.Stat(brFile)
+			if allowBr && err == nil {
+				writer.Header().Set("Content-Encoding", "br")
+				http.ServeFile(writer, req, brFile)
+			} else {
+				h.ServeHTTP(writer, req)
+			}
+
 		}
+
 		args.TimeStamp = time.Now()
 		args.Latency = args.TimeStamp.Sub(start)
 		util.LogRequest(args)

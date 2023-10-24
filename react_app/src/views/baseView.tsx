@@ -16,13 +16,14 @@ import Typography from "@mui/material/Typography";
 import useScrollTrigger from "@mui/material/useScrollTrigger";
 import { useQuery } from "@tanstack/react-query";
 import { isNull } from "lodash";
-import React, { useEffect } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Outlet, To, useLocation, useNavigate } from "react-router-dom";
 import { APP_BAR_ID, LOGO_URL, TAB_OPACITY, TRoute } from "../consts";
 import * as auth from "../protos/turbotin-Auth_connectquery";
 import ROUTES from "../routes";
 import { usePromisify } from "../util/promisify";
 import AuthDlg from "./auth/authDlg";
+import Loading from "../util/components/loading";
 
 const Img = styled("img")``;
 
@@ -107,7 +108,9 @@ const BaseView = (): JSX.Element => {
           )}
         </Toolbar>
       </AppBar>
-      <Outlet />
+      <Suspense fallback={<Loading />}>
+        <Outlet />
+      </Suspense>
     </Box>
   );
 };

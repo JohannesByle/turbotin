@@ -75,3 +75,12 @@ export const NAME_TO_STORE = fromPairs(
 ) as Record<string, Store>;
 
 export const EMPTY_ARR = [] as [];
+
+export const CENTER_PAGE_SX = {
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  width: "100%",
+  mt: "25vh",
+} as const;

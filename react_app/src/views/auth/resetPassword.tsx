@@ -4,6 +4,7 @@ import LoadingButton from "@mui/lab/LoadingButton";
 import EmailEdit, { isValidEmail } from "./emailEdit";
 import { useMutation } from "@tanstack/react-query";
 import * as auth from "../../protos/turbotin-Auth_connectquery";
+import { CENTER_PAGE_SX } from "../../consts";
 
 const ResetPassword = (): JSX.Element => {
   const [email, setEmail] = useState<string>("");
@@ -13,16 +14,7 @@ const ResetPassword = (): JSX.Element => {
   );
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        width: "100%",
-        mt: "25vh",
-      }}
-    >
+    <Box sx={CENTER_PAGE_SX}>
       <EmailEdit
         email={email}
         setEmail={setEmail}
