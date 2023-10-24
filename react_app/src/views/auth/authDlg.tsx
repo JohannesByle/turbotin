@@ -22,12 +22,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { isString } from "lodash";
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  Link as RouterLink,
-  redirect,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { TRoute } from "../../consts";
 import * as auth from "../../protos/turbotin-Auth_connectquery";
 import { AuthArgs } from "../../protos/turbotin_pb";

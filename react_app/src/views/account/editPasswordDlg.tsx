@@ -6,13 +6,12 @@ import {
   DialogTitle,
   useTheme,
 } from "@mui/material";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import React, { useCallback, useState } from "react";
 import * as auth from "../../protos/turbotin-Auth_connectquery";
-import { getCurrentUser } from "../../protos/turbotin-Auth_connectquery";
+import { useUser } from "../../util";
 import { TDlgProps } from "../../util/promisify";
 import PasswordEdit from "../auth/passwordEdit";
-import { useUser } from "../../util";
 
 const EditPasswordDlg = (props: TDlgProps): JSX.Element => {
   const { onCancel, onSubmit, open } = props;
