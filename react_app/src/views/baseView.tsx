@@ -57,9 +57,21 @@ const BaseView = (): JSX.Element => {
   }, [navigate, user, location.pathname]);
 
   return (
-    <Box sx={{ width: "100%" }}>
+    <Box
+      sx={{
+        width: "100vw",
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {authDlg}
-      <AppBar position="sticky" id={APP_BAR_ID} elevation={trigger ? 4 : 0}>
+
+      <AppBar
+        id={APP_BAR_ID}
+        elevation={trigger ? 4 : 0}
+        sx={{ position: "unset" }}
+      >
         <Toolbar>
           <Img
             src={LOGO_URL}
@@ -108,9 +120,19 @@ const BaseView = (): JSX.Element => {
           )}
         </Toolbar>
       </AppBar>
-      <Suspense fallback={<Loading />}>
-        <Outlet />
-      </Suspense>
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          width: "100%",
+          overflow: "auto",
+          position: "relative",
+        }}
+      >
+        <Suspense fallback={<Loading />}>
+          <Outlet />
+        </Suspense>
+      </Box>
     </Box>
   );
 };

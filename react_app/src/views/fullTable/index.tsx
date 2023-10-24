@@ -139,7 +139,7 @@ const FullTable = (): JSX.Element => {
         p: isMobile ? 1 : 4,
         justifyContent: "center",
         width: "100%",
-        height: `calc(100vh - ${APP_BAR_HEIGHT})`,
+        height: "100%",
         display: "flex",
       }}
     >
