@@ -1,3 +1,4 @@
+import { proto3 } from "@bufbuild/protobuf";
 import { ConnectError, Transport } from "@connectrpc/connect";
 import { TransportProvider } from "@connectrpc/connect-query";
 import { createConnectTransport } from "@connectrpc/connect-web";
@@ -11,10 +12,9 @@ import React, {
   useState,
 } from "react";
 import { TSetState } from ".";
-import { APP_BAR_ID, MS_PER_SECOND, voidFn } from "../consts";
-import { Severity } from "../protos/turbotin_pb";
-import { proto3 } from "@bufbuild/protobuf";
+import { MS_PER_SECOND, voidFn } from "../consts";
 import { Auth } from "../protos/turbotin-Auth_connectquery";
+import { Severity } from "../protos/turbotin_pb";
 
 const { ERROR, INFO, SUCCESS, WARNING, UNSPECIFIED } = Severity;
 
@@ -84,8 +84,6 @@ export const FlashesProvider = (props: PropsWithChildren): JSX.Element => {
 
   const transport = useMemo(() => getTransport(setFlashes), []);
 
-  const appBarHeight = document.getElementById(APP_BAR_ID)?.offsetHeight ?? 0;
-
   const { current: onClose } = useRef((key: string) =>
     setFlashes((prev) => {
       const result = new Map(prev);
@@ -102,7 +100,7 @@ export const FlashesProvider = (props: PropsWithChildren): JSX.Element => {
             key={key}
             open={true}
             onClose={() => onClose(key)}
-            sx={{ mt: `${appBarHeight}px` }}
+            sx={{ mt: "64px" }}
             anchorOrigin={{ horizontal: "center", vertical: "top" }}
           >
             <Alert

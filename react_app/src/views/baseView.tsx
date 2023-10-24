@@ -18,12 +18,12 @@ import { useQuery } from "@tanstack/react-query";
 import { isNull } from "lodash";
 import React, { Suspense, useEffect } from "react";
 import { Outlet, To, useLocation, useNavigate } from "react-router-dom";
-import { APP_BAR_ID, LOGO_URL, TAB_OPACITY, TRoute } from "../consts";
+import { LOGO_URL, TAB_OPACITY, TRoute } from "../consts";
 import * as auth from "../protos/turbotin-Auth_connectquery";
 import ROUTES from "../routes";
+import Loading from "../util/components/loading";
 import { usePromisify } from "../util/promisify";
 import AuthDlg from "./auth/authDlg";
-import Loading from "../util/components/loading";
 
 const Img = styled("img")``;
 
@@ -66,12 +66,7 @@ const BaseView = (): JSX.Element => {
       }}
     >
       {authDlg}
-
-      <AppBar
-        id={APP_BAR_ID}
-        elevation={trigger ? 4 : 0}
-        sx={{ position: "unset" }}
-      >
+      <AppBar elevation={trigger ? 4 : 0} sx={{ position: "unset" }}>
         <Toolbar>
           <Img
             src={LOGO_URL}

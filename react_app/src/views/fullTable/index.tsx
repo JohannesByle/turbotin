@@ -6,12 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import dayjs, { Dayjs } from "dayjs";
 import { isEmpty, isString } from "lodash";
 import React, { useDeferredValue, useMemo, useState } from "react";
-import {
-  APP_BAR_HEIGHT,
-  EMPTY_ARR,
-  MS_PER_SECOND,
-  STORE_TO_NAME,
-} from "../../consts";
+import { EMPTY_ARR, MS_PER_SECOND, STORE_TO_NAME } from "../../consts";
 import { todaysTobaccos } from "../../protos/turbotin-Public_connectquery";
 import { ObsTobacco } from "../../protos/turbotin_pb";
 import BoldSubStr from "../../util/components/boldSubStr";
