@@ -1,14 +1,29 @@
-import { ProductionQuantityLimits } from "@mui/icons-material";
-import { Box, Divider, Tooltip, useMediaQuery, useTheme } from "@mui/material";
+import { ProductionQuantityLimits, Timeline } from "@mui/icons-material";
+import {
+  Box,
+  Divider,
+  IconButton,
+  Tooltip,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { GridInitialStateCommunity } from "@mui/x-data-grid/models/gridStateCommunity";
 import { useQuery } from "@tanstack/react-query";
 import dayjs, { Dayjs } from "dayjs";
 import { isEmpty, isString } from "lodash";
 import React, { useDeferredValue, useMemo, useState } from "react";
-import { EMPTY_ARR, MS_PER_SECOND, STORE_TO_NAME } from "../../consts";
+import { useNavigate } from "react-router-dom";
+import {
+  EMPTY_ARR,
+  KebapMenu,
+  MS_PER_SECOND,
+  STORE_TO_NAME,
+  TRoute,
+} from "../../consts";
 import { todaysTobaccos } from "../../protos/turbotin-Public_connectquery";
 import { ObsTobacco } from "../../protos/turbotin_pb";
+import { ActionMenu, TAction } from "../../util/actions";
 import BoldSubStr from "../../util/components/boldSubStr";
 import {
   FILTER_COL,
@@ -20,7 +35,7 @@ import Filters from "./filters";
 import { price } from "./util";
 
 type TColVisibilityModel = Partial<
-  Record<keyof ObsTobacco | typeof FILTER_FIELD | "price", boolean>
+  Record<keyof ObsTobacco | typeof FILTER_FIELD | "price" | "kebap", boolean>
 >;
 
 const MOBILE_COLS: TColVisibilityModel = {
@@ -30,6 +45,7 @@ const MOBILE_COLS: TColVisibilityModel = {
   price: true,
   inStock: false,
   time: false,
+  kebap: false,
 };
 const DESKTOP_COLS: TColVisibilityModel = {
   [FILTER_FIELD]: false,
@@ -38,6 +54,7 @@ const DESKTOP_COLS: TColVisibilityModel = {
   price: true,
   inStock: true,
   time: true,
+  kebap: true,
 };
 
 function getRowId(row: ObsTobacco): number {
@@ -55,11 +72,15 @@ const FullTable = (): JSX.Element => {
   const tobaccos = data?.items ?? EMPTY_ARR;
 
   const [filter, setFilter] = useState<TFilter>({});
+  const [menuRow, setMenuRow] = useState<ObsTobacco>();
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   const { breakpoints } = useTheme();
   const isMobile = useMediaQuery(breakpoints.down("md"));
   const isDesktop = useMediaQuery(breakpoints.up("xl"));
   const visibiltyModel = isMobile ? MOBILE_COLS : DESKTOP_COLS;
+
+  const navigate = useNavigate();
 
   const filterModel = useMemo(() => calcFilterModel(filter), [filter]);
   const deferredFilterModel = useDeferredValue(filterModel);
@@ -124,8 +145,36 @@ const FullTable = (): JSX.Element => {
             </Tooltip>
           ),
       },
+      {
+        field: "kebap",
+        width: 40,
+        headerName: "",
+        hideable: false,
+        renderCell: ({ row }) => (
+          <IconButton
+            onClick={(e) => {
+              console.log(e);
+              setMenuRow(row);
+              setAnchorEl(e.currentTarget);
+            }}
+          >
+            <KebapMenu />
+          </IconButton>
+        ),
+      },
     ],
     [filter.item]
+  );
+
+  const actions = useMemo(
+    (): TAction[] => [
+      {
+        f: () => navigate(TRoute.individual_blends),
+        title: "Price history",
+        icon: <Timeline />,
+      },
+    ],
+    [navigate]
   );
 
   return (
@@ -138,6 +187,11 @@ const FullTable = (): JSX.Element => {
         display: "flex",
       }}
     >
+      <ActionMenu
+        anchorEl={anchorEl}
+        setAnchorEl={setAnchorEl}
+        actions={actions}
+      />
       {isDesktop && (
         <>
           <Filters filter={filter} setFilter={setFilter} rows={tobaccos} />
@@ -152,7 +206,6 @@ const FullTable = (): JSX.Element => {
           columns={columns}
           rows={tobaccos}
           loading={isFetching}
-          checkboxSelection={!isMobile}
           density={"compact"}
           columnVisibilityModel={visibiltyModel}
           filterModel={deferredFilterModel}

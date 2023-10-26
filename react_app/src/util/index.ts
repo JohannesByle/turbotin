@@ -2,7 +2,7 @@ import { Dispatch, SetStateAction, useEffect } from "react";
 import { User } from "../protos/turbotin_pb";
 import { getCurrentUser } from "../protos/turbotin-Auth_connectquery";
 import { useQuery } from "@tanstack/react-query";
-import { isUndefined } from "lodash";
+import { Dictionary, isString, isUndefined, keys, last, values } from "lodash";
 import { useNavigate } from "react-router-dom";
 import { TRoute } from "../consts";
 
@@ -26,4 +26,9 @@ export const useUser = (): User => {
   }, [user, navigate]);
 
   return user ?? new User();
+};
+
+export const arrayOf = <T extends string | number>(t: Dictionary<T>): T[] => {
+  const arr = values(t);
+  return isString(last(arr)) ? arr : arr.slice(arr.length / 2, arr.length);
 };

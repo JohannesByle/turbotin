@@ -72,6 +72,7 @@ func main() {
 
 	mux.Handle(protosconnect.NewAuthHandler(&services.Auth{}, opts))
 	mux.Handle(protosconnect.NewPublicHandler(&services.Public{}, opts))
+	mux.Handle(protosconnect.NewAdminHandler(&services.Admin{}, opts))
 	mux.Handle("/", fileHandler(http.FileServer(http.Dir(STATIC_DIR))))
 
 	http.ListenAndServe(util.HOST, h2c.NewHandler(mux, &http2.Server{}))

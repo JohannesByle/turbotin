@@ -16,7 +16,7 @@ import Typography from "@mui/material/Typography";
 import useScrollTrigger from "@mui/material/useScrollTrigger";
 import { useQuery } from "@tanstack/react-query";
 import { isNull } from "lodash";
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense, useEffect, useMemo } from "react";
 import { Outlet, To, useLocation, useNavigate } from "react-router-dom";
 import { LOGO_URL, TAB_OPACITY, TRoute } from "../consts";
 import * as auth from "../protos/turbotin-Auth_connectquery";
@@ -40,13 +40,20 @@ const BaseView = (): JSX.Element => {
   const location = useLocation();
   const navigate = useNavigate();
   const [authDlg, showAuthDlg] = usePromisify(AuthDlg);
+
   const { data: user, isLoading } = useQuery(auth.getCurrentUser.useQuery());
   const isLoggedIn = (user?.email ?? "") !== "";
+  const isAdmin = user?.isAdmin ?? false;
 
   const trigger = useScrollTrigger();
 
   const { palette } = useTheme();
   const buttonColor = palette.primary.contrastText;
+
+  const routes = useMemo(
+    () => [...NAV_ROUTES, ...(isAdmin ? [TRoute.admin] : [])],
+    [isAdmin]
+  );
 
   useEffect(() => {
     if (
@@ -81,14 +88,14 @@ const BaseView = (): JSX.Element => {
           </Typography>
           <Tabs
             value={
-              (NAV_ROUTES as string[]).includes(location.pathname) &&
+              (routes as string[]).includes(location.pathname) &&
               location.pathname
             }
             onChange={(e, value) => navigate(value as To)}
             indicatorColor="secondary"
             textColor="inherit"
           >
-            {NAV_ROUTES.map((route) => (
+            {routes.map((route) => (
               <Tab key={route} {...tabProps(route)} />
             ))}
           </Tabs>

@@ -12,6 +12,12 @@ export const DOLLAR_REGEX = /\$([+-]?[0-9]{1,3}(?:,?[0-9]{3})*(?:\.[0-9]{2})?)/;
 export const APP_BAR_HEIGHT = "72px";
 export const JWT_KEY = "jwt";
 
+export enum TAuthLevel {
+  none,
+  user,
+  admin,
+}
+
 export enum TRoute {
   full_table = "/full_table",
   individual_blends = "/individual_blends",
@@ -21,6 +27,7 @@ export enum TRoute {
   change_password = "/change_password/:user_id/:code",
   error = "/error",
   verify_email = "/verify_email/:user_id/:code",
+  admin = "/admin/",
 }
 
 export const MS_PER_SECOND = 1000;
@@ -83,3 +90,5 @@ export const CENTER_PAGE_SX = {
   width: "100%",
   mt: "25vh",
 } as const;
+
+export { default as KebapMenu } from "@mui/icons-material/MoreVert";

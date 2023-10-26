@@ -18,6 +18,8 @@ type User struct {
 	PasswordResetCode    string `gorm:"type:char(64) not null"`
 	PasswordResetCreated sql.NullTime
 
+	IsAdmin bool
+
 	LastEmailTime sql.NullTime
 }
 
@@ -35,4 +37,11 @@ type TobaccoPrice struct {
 	Price     string    `gorm:"type:varchar(100) not null"`
 	Stock     string    `gorm:"type:varchar(100) not null"`
 	Time      time.Time `gorm:"index"`
+}
+
+type Tag struct {
+	gorm.Model
+	ParentId uint   `gorm:"null"`
+	Name     string `gorm:"type:varchar(1000)"`
+	Category string `gorm:"type:varchar(100)"`
 }

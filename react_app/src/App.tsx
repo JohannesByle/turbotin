@@ -10,6 +10,8 @@ import { MS_PER_MINUTE } from "./consts";
 import ROUTES from "./routes";
 import { FlashesProvider } from "./util/flash";
 import BaseView from "./views/baseView";
+import { toPairs } from "lodash";
+import AuthProvider from "./views/auth/authProvider";
 
 dayjs.extend(relativeTime);
 
@@ -17,8 +19,9 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <BaseView />,
-    children: Object.entries(ROUTES).map(([path, details]) => ({
+    children: toPairs(ROUTES).map(([path, { element, level, ...details }]) => ({
       path,
+      element: <AuthProvider level={level}>{element}</AuthProvider>,
       ...details,
     })),
   },

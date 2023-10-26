@@ -15,9 +15,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-type Public struct {
-	pb.UnimplementedPublicServer
-}
+type Public struct{}
 
 var prices = TobaccoPrices
 

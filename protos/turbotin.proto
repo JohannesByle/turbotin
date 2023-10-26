@@ -83,6 +83,7 @@ message VerifyEmailArgs {
 message User {
   string email = 1;
   bool email_verified = 2;
+  bool is_admin = 3;
 }
 
 message Email {
@@ -121,4 +122,22 @@ message ObsTobacco {
 
 message ObsTobaccoList {
   repeated ObsTobacco items = 1;
+}
+
+service Admin {
+  rpc GetTags(EmptyArgs) returns (TagList) {}
+  rpc DeleteTags(TagList) returns (EmptyArgs) {}
+  rpc UpdateTags(TagList) returns (EmptyArgs) {}
+  rpc CreateTags(TagList) returns (EmptyArgs) {}
+}
+
+message Tag {
+  int32 id = 1;
+  int32 parent_id = 2;
+  string name = 3;
+  string category = 4;
+}
+
+message TagList {
+  repeated Tag items = 1;
 }

@@ -18,7 +18,7 @@ const (
 	PASSWORD_RESET_TIMEOUT = time.Duration(10) * time.Minute
 )
 
-type Auth struct{ pb.UnimplementedAuthServer }
+type Auth struct{}
 
 func (s *Auth) GetCurrentUser(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.User], error) {
 	user, res, err := GetUser[pb.User](ctx)
@@ -28,6 +28,7 @@ func (s *Auth) GetCurrentUser(ctx context.Context, req *Request[pb.EmptyArgs]) (
 	res = NewResponse(&pb.User{})
 	res.Msg.Email = user.Email
 	res.Msg.EmailVerified = user.EmailVerified
+	res.Msg.IsAdmin = user.IsAdmin
 	return res, nil
 }
 
