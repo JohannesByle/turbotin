@@ -18,7 +18,7 @@ type tobaccoKey struct {
 	link string
 }
 
-func PortData() {
+func PortTobaccos() {
 	f, err := os.Open("../data/archive.csv")
 	if err != nil {
 		panic(err)
@@ -88,5 +88,66 @@ func PortData() {
 	}
 	log.Println(len(prices))
 	DB.CreateInBatches(prices, 500)
+
+}
+
+func PortCategories() {
+	f, err := os.Open("../data/cat_data.csv")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	blendMap := map[string]map[string]bool{}
+
+	r := csv.NewReader(f)
+	r.Read()
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		brand := record[2]
+		blend := record[3]
+
+		blends, ok := blendMap[brand]
+		if !ok {
+			blends = map[string]bool{}
+			blendMap[brand] = blends
+		}
+		blends[blend] = true
+
+	}
+
+	brandCat := &models.Category{Name: "Brand"}
+	DB.Create(brandCat)
+	blendCat := &models.Category{
+		Name:     "Blend",
+		ParentId: brandCat.ID}
+	DB.Create(blendCat)
+
+	brands := []*models.Tag{}
+	for k := range blendMap {
+		brands = append(brands, &models.Tag{
+			CategoryId: brandCat.ID,
+			Value:      k,
+			ParentId:   0})
+	}
+	DB.CreateInBatches(brands, 500)
+
+	blends := []*models.Tag{}
+	for _, brand := range brands {
+		for blend := range blendMap[brand.Value] {
+			blends = append(blends, &models.Tag{
+				CategoryId: blendCat.ID,
+				Value:      blend,
+				ParentId:   brand.ID})
+		}
+	}
+	DB.CreateInBatches(blends, 500)
 
 }

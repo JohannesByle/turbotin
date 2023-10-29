@@ -1,18 +1,21 @@
-import { Tag } from "@mui/icons-material";
+import { Category, Tag } from "@mui/icons-material";
 import { Box, Divider, Tab, Tabs, useTheme } from "@mui/material";
 import React, { useState } from "react";
 import { arrayOf } from "../../util";
 import { TTab } from "./consts";
 import Tags from "./tags";
+import Categories from "./categories";
 
-const { tags } = TTab;
+const { tags, categories } = TTab;
 
 const VIEWS: Record<TTab, JSX.Element> = {
   [tags]: <Tags />,
+  [categories]: <Categories />,
 };
 
 const ICONS: Record<TTab, JSX.Element> = {
   [tags]: <Tag />,
+  [categories]: <Category />,
 };
 
 const Admin = (): JSX.Element => {
@@ -33,7 +36,7 @@ const Admin = (): JSX.Element => {
         value={tab}
         onChange={(_, v) => setTab(v as TTab)}
         orientation="vertical"
-        sx={{ background: palette.background.paper, width: 200 }}
+        sx={{ background: palette.background.paper }}
       >
         {arrayOf(TTab).map((t) => (
           <Tab key={t} value={t} label={t} icon={ICONS[t]} />

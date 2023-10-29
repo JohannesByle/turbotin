@@ -126,18 +126,44 @@ message ObsTobaccoList {
 
 service Admin {
   rpc GetTags(EmptyArgs) returns (TagList) {}
-  rpc DeleteTags(TagList) returns (EmptyArgs) {}
-  rpc UpdateTags(TagList) returns (EmptyArgs) {}
-  rpc CreateTags(TagList) returns (EmptyArgs) {}
+  rpc SetTags(TagList) returns (EmptyArgs) {}
+
+  rpc GetCategories(EmptyArgs) returns (CategoryList) {}
+  rpc SetCategories(CategoryList) returns (EmptyArgs) {}
+}
+
+enum SqlState {
+  SQL_STATE_UNSPECIFIED = 0;
+  SQL_STATE_EXISTING = 1;
+  SQL_STATE_NEW = 2;
+  SQL_STATE_MODIFIED = 3;
+  SQL_STATE_DELETED = 4;
+}
+
+enum DataType {
+  DATA_TYPE_UNSPECIFIED = 0;
+  DATA_TYPE_STRING = 1;
 }
 
 message Tag {
-  int32 id = 1;
-  int32 parent_id = 2;
-  string name = 3;
-  string category = 4;
+  SqlState state = 1;
+  int32 id = 2;
+  int32 parent_id = 3;
+  string value = 4;
+  int32 category_id = 5;
 }
 
 message TagList {
   repeated Tag items = 1;
+}
+
+message Category {
+  SqlState state = 1;
+  int32 id = 2;
+  int32 parent_id = 3;
+  string name = 4;
+}
+
+message CategoryList {
+  repeated Category items = 1;
 }

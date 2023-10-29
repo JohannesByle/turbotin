@@ -15,15 +15,22 @@ import {
 import Typography from "@mui/material/Typography";
 import useScrollTrigger from "@mui/material/useScrollTrigger";
 import { useQuery } from "@tanstack/react-query";
-import { isNull } from "lodash";
-import React, { Suspense, useEffect, useMemo } from "react";
-import { Outlet, To, useLocation, useNavigate } from "react-router-dom";
+import React, { Suspense, useMemo } from "react";
+import {
+  NavigateFunction,
+  Outlet,
+  To,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { LOGO_URL, TAB_OPACITY, TRoute } from "../consts";
 import * as auth from "../protos/turbotin-Auth_connectquery";
 import ROUTES from "../routes";
 import Loading from "../util/components/loading";
 import { usePromisify } from "../util/promisify";
 import AuthDlg from "./auth/authDlg";
+import { isAuthenticated } from "./auth/authProvider";
+import { User } from "../protos/turbotin_pb";
 
 const Img = styled("img")``;
 
@@ -31,9 +38,27 @@ const { email_updates, full_table, individual_blends, my_account } = TRoute;
 
 const NAV_ROUTES: TRoute[] = [full_table, individual_blends, email_updates];
 
-const tabProps = (route: TRoute): TabProps => {
-  const { Icon, name } = ROUTES[route];
-  return { value: route, label: name, icon: <Icon />, iconPosition: "start" };
+const tabProps = (
+  route: TRoute,
+  user: User | undefined,
+  showAuthDlg: (props: object) => Promise<unknown>,
+  navigate: NavigateFunction
+): TabProps => {
+  const { Icon, name, level } = ROUTES[route];
+  const authenticated = isAuthenticated(level, user);
+  return {
+    value: route,
+    label: name,
+    icon: <Icon />,
+    iconPosition: "start",
+    onClick: authenticated
+      ? undefined
+      : async (e) => {
+          e.stopPropagation();
+          await showAuthDlg({});
+          navigate(route);
+        },
+  };
 };
 
 const BaseView = (): JSX.Element => {
@@ -54,14 +79,6 @@ const BaseView = (): JSX.Element => {
     () => [...NAV_ROUTES, ...(isAdmin ? [TRoute.admin] : [])],
     [isAdmin]
   );
-
-  useEffect(() => {
-    if (
-      location.pathname === "/" ||
-      (isNull(user) && location.pathname === my_account)
-    )
-      navigate(full_table);
-  }, [navigate, user, location.pathname]);
 
   return (
     <Box
@@ -91,13 +108,35 @@ const BaseView = (): JSX.Element => {
               (routes as string[]).includes(location.pathname) &&
               location.pathname
             }
-            onChange={(e, value) => navigate(value as To)}
+            onChange={(e, value: TRoute) =>
+              isAuthenticated(ROUTES[value].level, user) && navigate(value)
+            }
             indicatorColor="secondary"
             textColor="inherit"
           >
-            {routes.map((route) => (
-              <Tab key={route} {...tabProps(route)} />
-            ))}
+            {routes.map((route) => {
+              const { Icon, name, level } = ROUTES[route];
+              const authenticated = isAuthenticated(level, user);
+              return (
+                <Tab
+                  key={route}
+                  value={route}
+                  label={name}
+                  icon={<Icon />}
+                  iconPosition="start"
+                  disableRipple={!authenticated}
+                  onClick={
+                    authenticated
+                      ? undefined
+                      : async (e) => {
+                          e.stopPropagation();
+                          await showAuthDlg({});
+                          navigate(route);
+                        }
+                  }
+                />
+              );
+            })}
           </Tabs>
           <Box sx={{ mr: "auto" }} />
           {isLoading ? (

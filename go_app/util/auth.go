@@ -67,7 +67,7 @@ func SetEmail(resp AnyResponse, email string, remember bool) error {
 	if err != nil {
 		return err
 	}
-	cookie := http.Cookie{Name: AUTH_COOKIE_KEY, Value: value}
+	cookie := http.Cookie{Name: AUTH_COOKIE_KEY, Value: value, Path: "/"}
 	if remember {
 		cookie.Expires = time.Now().AddDate(0, 0, COOKIE_NUM_DAYS)
 	}

@@ -41,7 +41,13 @@ type TobaccoPrice struct {
 
 type Tag struct {
 	gorm.Model
+	ParentId   uint   `gorm:"null;index;uniqueIndex:value"`
+	Value      string `gorm:"type:varchar(500);uniqueIndex:value"`
+	CategoryId uint   `gorm:"index;uniqueIndex:value"`
+}
+
+type Category struct {
+	gorm.Model
 	ParentId uint   `gorm:"null"`
-	Name     string `gorm:"type:varchar(1000)"`
-	Category string `gorm:"type:varchar(100)"`
+	Name     string `gorm:"type:varchar(100);unique"`
 }

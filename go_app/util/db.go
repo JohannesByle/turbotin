@@ -36,6 +36,11 @@ func InitGorm() {
 	if err != nil {
 		log.Fatalf("failed to connect to db: %v", err)
 	}
-	DB.AutoMigrate(&models.User{}, &models.Tobacco{}, &models.TobaccoPrice{})
+	DB.AutoMigrate(
+		&models.User{},
+		&models.Tobacco{},
+		&models.TobaccoPrice{},
+		&models.Tag{},
+		&models.Category{})
 	log.Printf("gorm initialized")
 }
