@@ -41,6 +41,8 @@ func InitGorm() {
 		&models.Tobacco{},
 		&models.TobaccoPrice{},
 		&models.Tag{},
-		&models.Category{})
+		&models.Category{},
+		&models.TagToTag{},
+		&models.TobaccoToTag{})
 	log.Printf("gorm initialized")
 }

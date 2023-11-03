@@ -76,7 +76,7 @@ message AuthArgs {
 }
 
 message VerifyEmailArgs {
-  int32 user_id = 1;
+  uint32 user_id = 1;
   string code = 2;
 }
 
@@ -95,7 +95,7 @@ message SendResetPasswordArgs {
 }
 
 message ResetPasswordArgs {
-  int32 user_id = 1;
+  uint32 user_id = 1;
   string code = 2;
   string password = 3;
 }
@@ -117,7 +117,7 @@ message ObsTobacco {
   string price_str = 4;
   google.protobuf.Timestamp time = 5;
   bool in_stock = 6;
-  int32 tobacco_id = 7;
+  uint32 tobacco_id = 7;
 }
 
 message ObsTobaccoList {
@@ -125,6 +125,12 @@ message ObsTobaccoList {
 }
 
 service Admin {
+  rpc GetTobaccoToTags(EmptyArgs) returns (TobaccoToTagList) {}
+  rpc SetTobaccoToTags(TobaccoToTagList) returns (EmptyArgs) {}
+
+  rpc GetTagToTags(EmptyArgs) returns (TagToTagList) {}
+  rpc SetTagToTags(TagToTagList) returns (EmptyArgs) {}
+
   rpc GetTags(EmptyArgs) returns (TagList) {}
   rpc SetTags(TagList) returns (EmptyArgs) {}
 
@@ -145,12 +151,33 @@ enum DataType {
   DATA_TYPE_STRING = 1;
 }
 
+message TobaccoToTag {
+  SqlState state = 1;
+  uint32 id = 2;
+  uint32 tag_id = 3;
+  uint32 tobacco_id = 4;
+}
+
+message TobaccoToTagList {
+  repeated TobaccoToTag items = 1;
+}
+
+message TagToTag {
+  SqlState state = 1;
+  uint32 id = 2;
+  uint32 tag_id = 3;
+  uint32 parent_tag_id = 4;
+}
+
+message TagToTagList {
+  repeated TagToTag items = 1;
+}
+
 message Tag {
   SqlState state = 1;
-  int32 id = 2;
-  int32 parent_id = 3;
-  string value = 4;
-  int32 category_id = 5;
+  uint32 id = 2;
+  string value = 3;
+  uint32 category_id = 4;
 }
 
 message TagList {
@@ -159,9 +186,8 @@ message TagList {
 
 message Category {
   SqlState state = 1;
-  int32 id = 2;
-  int32 parent_id = 3;
-  string name = 4;
+  uint32 id = 2;
+  string name = 3;
 }
 
 message CategoryList {

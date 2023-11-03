@@ -99,6 +99,7 @@ func PortCategories() {
 	defer f.Close()
 
 	blendMap := map[string]map[string]bool{}
+	tobaccoBlendMap := map[string]string{}
 
 	r := csv.NewReader(f)
 	r.Read()
@@ -110,9 +111,11 @@ func PortCategories() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		tobacco := strings.TrimSpace(record[1])
+		brand := strings.TrimSpace(record[2])
+		blend := strings.TrimSpace(record[3])
 
-		brand := record[2]
-		blend := record[3]
+		tobaccoBlendMap[blend] = tobacco
 
 		blends, ok := blendMap[brand]
 		if !ok {
@@ -125,29 +128,75 @@ func PortCategories() {
 
 	brandCat := &models.Category{Name: "Brand"}
 	DB.Create(brandCat)
-	blendCat := &models.Category{
-		Name:     "Blend",
-		ParentId: brandCat.ID}
+	blendCat := &models.Category{Name: "Blend"}
 	DB.Create(blendCat)
+	DB.Create(&models.Category{Name: "Size"})
+	DB.Create(&models.Category{Name: "Cut"})
 
 	brands := []*models.Tag{}
-	for k := range blendMap {
+	blends := []*models.Tag{}
+	blendTagMap := map[string][]*models.Tag{}
+
+	// dedup on name
+	seenBlends := map[string]bool{}
+
+	for brand, arr := range blendMap {
 		brands = append(brands, &models.Tag{
 			CategoryId: brandCat.ID,
-			Value:      k,
-			ParentId:   0})
+			Value:      brand})
+		blendTags := []*models.Tag{}
+		for blend := range arr {
+			if seenBlends[strings.ToLower(blend)] {
+				continue
+			}
+			seenBlends[strings.ToLower(blend)] = true
+			blendTag := &models.Tag{
+				CategoryId: blendCat.ID,
+				Value:      blend}
+			blends = append(blends, blendTag)
+			blendTags = append(blendTags, blendTag)
+		}
+		blendTagMap[brand] = blendTags
 	}
 	DB.CreateInBatches(brands, 500)
+	log.Println("Created brands")
+	DB.CreateInBatches(blends, 500)
+	log.Println("Created blends")
 
-	blends := []*models.Tag{}
+	tagToTags := []*models.TagToTag{}
 	for _, brand := range brands {
-		for blend := range blendMap[brand.Value] {
-			blends = append(blends, &models.Tag{
-				CategoryId: blendCat.ID,
-				Value:      blend,
-				ParentId:   brand.ID})
+		for _, blend := range blendTagMap[brand.Value] {
+			tagToTags = append(tagToTags, &models.TagToTag{
+				ParentTagId: blend.ID,
+				TagId:       brand.ID})
 		}
 	}
-	DB.CreateInBatches(blends, 500)
+	DB.CreateInBatches(tagToTags, 500)
+	log.Println("Created tags")
+
+	tobaccos := []*models.Tobacco{}
+	DB.Find(&tobaccos)
+	tobaccoMap := map[string]*models.Tobacco{}
+	for _, tobacco := range tobaccos {
+		tobaccoMap[tobacco.Item] = tobacco
+	}
+	tobaccoToTags := []*models.TobaccoToTag{}
+	for _, blend := range blends {
+		name, ok := tobaccoBlendMap[blend.Value]
+		if !ok {
+			continue
+		}
+		tobacco, ok := tobaccoMap[name]
+		if !ok {
+			continue
+		}
+		tobaccoToTags = append(tobaccoToTags, &models.TobaccoToTag{
+			TobaccoId: tobacco.ID,
+			TagId:     blend.ID,
+		})
+
+	}
+	DB.CreateInBatches(tobaccoToTags, 500)
+	log.Println("Created tobacco tags")
 
 }

@@ -39,15 +39,25 @@ type TobaccoPrice struct {
 	Time      time.Time `gorm:"index"`
 }
 
+type TobaccoToTag struct {
+	gorm.Model
+	TobaccoId uint
+	TagId     uint
+}
+
+type TagToTag struct {
+	gorm.Model
+	TagId       uint `gorm:"index;uniqueIndex:pair"`
+	ParentTagId uint `gorm:"index;uniqueIndex:pair"`
+}
+
 type Tag struct {
 	gorm.Model
-	ParentId   uint   `gorm:"null;index;uniqueIndex:value"`
-	Value      string `gorm:"type:varchar(500);uniqueIndex:value"`
-	CategoryId uint   `gorm:"index;uniqueIndex:value"`
+	Value      string `gorm:"type:varchar(500)"`
+	CategoryId uint   `gorm:"index"`
 }
 
 type Category struct {
 	gorm.Model
-	ParentId uint   `gorm:"null"`
-	Name     string `gorm:"type:varchar(100);unique"`
+	Name string `gorm:"type:varchar(100);unique"`
 }

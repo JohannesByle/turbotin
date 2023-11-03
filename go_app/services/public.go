@@ -71,7 +71,7 @@ func (s *Public) TodaysTobaccos(ctx context.Context, req *Request[pb.EmptyArgs])
 		util.DB.ScanRows(rows, &row)
 
 		items = append(items, &pb.ObsTobacco{
-			TobaccoId: int32(row.TobaccoID),
+			TobaccoId: uint32(row.TobaccoID),
 			Item:      row.Item,
 			Store:     pb.Store(row.Store),
 			Link:      row.Link,

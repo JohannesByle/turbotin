@@ -96,7 +96,7 @@ func (s *Auth) VerifyEmail(ctx context.Context, req *Request[pb.VerifyEmailArgs]
 
 	var user models.User
 	DB.First(&user, in.UserId)
-	if int32(user.ID) != in.UserId || user.EmailCode != in.Code || user.EmailVerified {
+	if uint32(user.ID) != in.UserId || user.EmailCode != in.Code || user.EmailVerified {
 		return FlashError[pb.EmptyResponse]("Unable to verify email", CodePermissionDenied)
 	}
 	user.EmailVerified = true
@@ -154,7 +154,7 @@ func (s *Auth) ResetPassword(ctx context.Context, req *Request[pb.ResetPasswordA
 		log.Println(user.PasswordResetCreated.Time)
 		return FlashError[pb.EmptyResponse]("Reset code expired", CodePermissionDenied)
 	}
-	if int32(user.ID) != in.UserId || user.PasswordResetCode != in.Code {
+	if uint32(user.ID) != in.UserId || user.PasswordResetCode != in.Code {
 		return InternalError[pb.EmptyResponse]()
 	}
 	user.Password = GeneratePasswordHash(in.Password)
