@@ -12,7 +12,7 @@ import React, {
   useState,
 } from "react";
 import { TSetState } from ".";
-import { MS_PER_SECOND, voidFn } from "../consts";
+import { IS_PROD, MS_PER_SECOND, voidFn } from "../consts";
 import { Auth } from "../protos/turbotin-Auth_connectquery";
 import { Severity } from "../protos/turbotin_pb";
 
@@ -37,6 +37,7 @@ function getTransport(
 ): Transport {
   return createConnectTransport({
     baseUrl: window.location.origin,
+    useBinaryFormat: IS_PROD,
     interceptors: [
       (next) => async (req) => {
         const doSetFlashes = (flash: string, severity: Severity): void => {
