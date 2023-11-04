@@ -1,4 +1,4 @@
-import { Dictionary, isUndefined, sortBy } from "lodash";
+import { Dictionary, NumericDictionary, isUndefined, sortBy } from "lodash";
 import { Category, Tag, TagToTag } from "../../../protos/turbotin_pb";
 
 export function getChildren(
@@ -47,6 +47,8 @@ export function getValidCats(
     if (!getChildren(c, catMap, tagMap, links).includes(cat)) result.push(c);
   return sortBy(result, (c) => c.id !== cat.id);
 }
+
+export type TTagRow = NumericDictionary<Tag> & { id: number };
 
 export const NULL_CAT = new Category();
 export const OPERATOR = "contains";

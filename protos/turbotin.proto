@@ -138,24 +138,15 @@ service Admin {
   rpc SetCategories(CategoryList) returns (EmptyArgs) {}
 }
 
-enum SqlState {
-  SQL_STATE_UNSPECIFIED = 0;
-  SQL_STATE_EXISTING = 1;
-  SQL_STATE_NEW = 2;
-  SQL_STATE_MODIFIED = 3;
-  SQL_STATE_DELETED = 4;
-}
-
 enum DataType {
   DATA_TYPE_UNSPECIFIED = 0;
   DATA_TYPE_STRING = 1;
 }
 
 message TobaccoToTag {
-  SqlState state = 1;
-  uint32 id = 2;
-  uint32 tag_id = 3;
-  uint32 tobacco_id = 4;
+  uint32 id = 1;
+  uint32 tag_id = 2;
+  uint32 tobacco_id = 3;
 }
 
 message TobaccoToTagList {
@@ -163,10 +154,9 @@ message TobaccoToTagList {
 }
 
 message TagToTag {
-  SqlState state = 1;
-  uint32 id = 2;
-  uint32 tag_id = 3;
-  uint32 parent_tag_id = 4;
+  uint32 id = 1;
+  uint32 tag_id = 2;
+  uint32 parent_tag_id = 3;
 }
 
 message TagToTagList {
@@ -174,10 +164,9 @@ message TagToTagList {
 }
 
 message Tag {
-  SqlState state = 1;
-  uint32 id = 2;
-  string value = 3;
-  uint32 category_id = 4;
+  uint32 id = 1;
+  string value = 2;
+  uint32 category_id = 3;
 }
 
 message TagList {
@@ -185,9 +174,8 @@ message TagList {
 }
 
 message Category {
-  SqlState state = 1;
-  uint32 id = 2;
-  string name = 3;
+  uint32 id = 1;
+  string name = 2;
 }
 
 message CategoryList {

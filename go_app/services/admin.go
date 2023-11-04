@@ -8,6 +8,7 @@ import (
 	. "turbotin/util"
 
 	. "connectrpc.com/connect"
+	"gorm.io/gorm"
 )
 
 type Admin struct{}
@@ -27,7 +28,10 @@ func (s *Admin) GetTobaccoToTags(ctx context.Context, req *Request[pb.EmptyArgs]
 }
 
 func (s *Admin) SetTobaccoToTags(ctx context.Context, req *Request[pb.TobaccoToTagList]) (*Response[pb.EmptyArgs], error) {
-	return nil, nil
+	DB.Transaction(func(tx *gorm.DB) error {
+		return nil
+	})
+	return NewResponse[pb.EmptyArgs](nil), nil
 }
 
 func (s *Admin) GetTagToTags(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.TagToTagList], error) {
@@ -45,7 +49,18 @@ func (s *Admin) GetTagToTags(ctx context.Context, req *Request[pb.EmptyArgs]) (*
 }
 
 func (s *Admin) SetTagToTags(ctx context.Context, req *Request[pb.TagToTagList]) (*Response[pb.EmptyArgs], error) {
-	return nil, nil
+	DB.Transaction(func(tx *gorm.DB) error {
+		links := []*models.TagToTag{}
+		for _, link := range req.Msg.Items {
+			links = append(links, &models.TagToTag{
+				TagId:       uint(link.TagId),
+				ParentTagId: uint(link.ParentTagId),
+				Model:       gorm.Model{ID: uint(link.Id)},
+			})
+		}
+		return tx.Save(links).Error
+	})
+	return NewResponse[pb.EmptyArgs](nil), nil
 }
 
 func (s *Admin) GetTags(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.TagList], error) {

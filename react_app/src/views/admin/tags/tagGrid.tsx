@@ -1,21 +1,12 @@
-import { Autocomplete, TextField, useTheme } from "@mui/material";
-import {
-  DataGrid,
-  GridColDef,
-  GridFilterModel,
-  GridRenderEditCellParams,
-} from "@mui/x-data-grid";
-import {
-  Dictionary,
-  NumericDictionary,
-  fromPairs,
-  groupBy,
-  isUndefined,
-  sortBy,
-} from "lodash";
-import React, { useEffect, useMemo, useRef } from "react";
+import { useTheme } from "@mui/material";
+import { DataGrid, GridColDef, GridFilterModel } from "@mui/x-data-grid";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { fromPairs, groupBy, isUndefined, toPairs } from "lodash";
+import React, { useMemo } from "react";
+import * as admin from "../../../protos/turbotin-Admin_connectquery";
 import { Category, Tag, TagToTag } from "../../../protos/turbotin_pb";
-import { NULL_CAT, getChildren, getValidCats } from "./util";
+import TagEditCell from "./editCell";
+import { NULL_CAT, TTagRow, getChildren, getValidCats } from "./util";
 
 type TProps = {
   cat: Category;
@@ -26,15 +17,13 @@ type TProps = {
   filterModel?: GridFilterModel;
 };
 
-type TRow = NumericDictionary<Tag> & { id: number };
-
 function tagsToRows(
   cat: Category,
   catMap: Map<number, Category>,
   links: TagToTag[],
   tagMap: Map<number, Tag>
-): TRow[] {
-  const result = new Map<number, TRow>();
+): TTagRow[] {
+  const result = new Map<number, TTagRow>();
   for (const tag of tagMap.values())
     if (tag.categoryId === cat.id)
       result.set(tag.id, { [tag.categoryId]: tag, id: tag.id });
@@ -54,43 +43,14 @@ function tagsToRows(
   return [...result.values()];
 }
 
-type TEditCellProps = {
-  params: GridRenderEditCellParams<TRow>;
-  c: Category;
-  catValues: Dictionary<Tag[]>;
-};
-
-const EditCell = (props: TEditCellProps): JSX.Element => {
-  const { c, catValues, params } = props;
-  const { row, api, hasFocus } = params;
-
-  const ref = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    if (hasFocus) {
-      ref.current?.focus();
-      ref.current?.click();
-    }
-  }, [hasFocus]);
-
-  return (
-    <Autocomplete
-      ref={ref}
-      value={row[c.id]}
-      options={sortBy(catValues[c.id], (c) => c.value)}
-      onChange={(_, value) => void api.setEditCellValue({ ...params, value })}
-      sx={{ border: 0, width: "100%" }}
-      renderInput={(params) => <TextField {...params} label="" />}
-      getOptionLabel={(t) => t.value}
-      disableClearable
-    />
-  );
-};
-
 const TagGrid = (props: TProps): JSX.Element => {
   const { tags, cat, links, catMap, tagMap, filterModel } = props;
 
   const catValues = useMemo(() => groupBy(tags, (t) => t.categoryId), [tags]);
+  const { mutateAsync: setTagToTags } = useMutation(
+    admin.setTagToTags.useMutation()
+  );
+  const queryClient = useQueryClient();
 
   const children = getChildren(cat, catMap, tagMap, links);
 
@@ -102,23 +62,21 @@ const TagGrid = (props: TProps): JSX.Element => {
   );
 
   const columns = useMemo(
-    (): Array<GridColDef<TRow>> =>
+    (): Array<GridColDef<TTagRow>> =>
       getValidCats(cat, catMap, tagMap, links)
         .filter((c) => c !== NULL_CAT)
         .map(
-          (c): GridColDef<TRow> => ({
+          (c): GridColDef<TTagRow, string | Tag> => ({
             field: String(c.id),
             headerName: c.name,
             flex: 1,
             valueGetter: ({ row }) => row[c.id]?.value,
-            valueSetter: ({ row, value }) => {
-              console.log(value);
-              return row;
-            },
+            valueSetter: ({ row, value }) =>
+              value instanceof Tag ? { ...row, [c.id]: value } : row,
             editable: c !== cat,
             type: "string",
             renderEditCell: (params) => (
-              <EditCell params={params} c={c} catValues={catValues} />
+              <TagEditCell params={params} c={c} catValues={catValues} />
             ),
           })
         ),
@@ -129,6 +87,7 @@ const TagGrid = (props: TProps): JSX.Element => {
     <DataGrid
       rows={rows}
       columns={columns}
+      loading={queryClient.isFetching() > 0 || queryClient.isMutating() > 0}
       sx={{ backgroundColor: palette.background.paper }}
       filterModel={filterModel}
       initialState={{
@@ -142,8 +101,23 @@ const TagGrid = (props: TProps): JSX.Element => {
         },
       }}
       disableColumnFilter
-      processRowUpdate={(newRow, oldRow) => {
-        console.log({ newRow, oldRow });
+      processRowUpdate={async (newRow, oldRow) => {
+        const id = newRow.id;
+        for (const [k_, v] of toPairs(newRow)) {
+          const k = parseInt(k_);
+          if (!isFinite(k) || v === oldRow[k]) continue;
+          const link = links.find(
+            (l) => l.tagId === oldRow[k].id && l.parentTagId === id
+          );
+          if (isUndefined(link)) return oldRow;
+          const newLink = link.clone();
+          newLink.tagId = v.id;
+          await setTagToTags({ items: [newLink] });
+          await queryClient.invalidateQueries({
+            queryKey: admin.getTagToTags.getQueryKey(),
+          });
+          return newRow;
+        }
         return oldRow;
       }}
     />
