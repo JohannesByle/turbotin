@@ -48,7 +48,7 @@ export function getValidCats(
   return sortBy(result, (c) => c.id !== cat.id);
 }
 
-export type TTagRow = NumericDictionary<Tag> & { id: number };
+export type TRow = NumericDictionary<Tag> & { id: number };
 
 export const NULL_CAT = new Category();
 export const OPERATOR = "contains";

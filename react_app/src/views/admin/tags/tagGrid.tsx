@@ -1,12 +1,12 @@
 import { useTheme } from "@mui/material";
 import { DataGrid, GridColDef, GridFilterModel } from "@mui/x-data-grid";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { fromPairs, groupBy, isUndefined, toPairs } from "lodash";
+import { fromPairs, groupBy, isUndefined, sortBy, toPairs } from "lodash";
 import React, { useMemo } from "react";
 import * as admin from "../../../protos/turbotin-Admin_connectquery";
 import { Category, Tag, TagToTag } from "../../../protos/turbotin_pb";
 import TagEditCell from "./editCell";
-import { NULL_CAT, TTagRow, getChildren, getValidCats } from "./util";
+import { NULL_CAT, TRow, getChildren, getValidCats } from "./util";
 
 type TProps = {
   cat: Category;
@@ -22,8 +22,8 @@ function tagsToRows(
   catMap: Map<number, Category>,
   links: TagToTag[],
   tagMap: Map<number, Tag>
-): TTagRow[] {
-  const result = new Map<number, TTagRow>();
+): TRow[] {
+  const result = new Map<number, TRow>();
   for (const tag of tagMap.values())
     if (tag.categoryId === cat.id)
       result.set(tag.id, { [tag.categoryId]: tag, id: tag.id });
@@ -40,7 +40,7 @@ function tagsToRows(
       dict[childCat.id] = childTag;
     }
   }
-  return [...result.values()];
+  return sortBy([...result.values()], (r) => -r.id);
 }
 
 const TagGrid = (props: TProps): JSX.Element => {
@@ -50,6 +50,7 @@ const TagGrid = (props: TProps): JSX.Element => {
   const { mutateAsync: setTagToTags } = useMutation(
     admin.setTagToTags.useMutation()
   );
+  const { mutateAsync: setTags } = useMutation(admin.setTags.useMutation());
   const queryClient = useQueryClient();
 
   const children = getChildren(cat, catMap, tagMap, links);
@@ -62,22 +63,32 @@ const TagGrid = (props: TProps): JSX.Element => {
   );
 
   const columns = useMemo(
-    (): Array<GridColDef<TTagRow>> =>
+    (): Array<GridColDef<TRow>> =>
       getValidCats(cat, catMap, tagMap, links)
         .filter((c) => c !== NULL_CAT)
         .map(
-          (c): GridColDef<TTagRow, string | Tag> => ({
+          (c): GridColDef<TRow, string | Tag> => ({
             field: String(c.id),
             headerName: c.name,
             flex: 1,
             valueGetter: ({ row }) => row[c.id]?.value,
-            valueSetter: ({ row, value }) =>
-              value instanceof Tag ? { ...row, [c.id]: value } : row,
-            editable: c !== cat,
+            valueSetter:
+              c === cat
+                ? ({ row, value }) => {
+                    if (value instanceof Tag) return row;
+                    const tag = row[c.id].clone();
+                    tag.value = value;
+                    return { ...row, [c.id]: tag };
+                  }
+                : ({ row, value }) =>
+                    value instanceof Tag ? { ...row, [c.id]: value } : row,
+            editable: true,
             type: "string",
-            renderEditCell: (params) => (
-              <TagEditCell params={params} c={c} catValues={catValues} />
-            ),
+            ...(c !== cat && {
+              renderEditCell: (params) => (
+                <TagEditCell params={params} c={c} catValues={catValues} />
+              ),
+            }),
           })
         ),
     [cat, catMap, tagMap, links, catValues]
@@ -106,17 +117,35 @@ const TagGrid = (props: TProps): JSX.Element => {
         for (const [k_, v] of toPairs(newRow)) {
           const k = parseInt(k_);
           if (!isFinite(k) || v === oldRow[k]) continue;
-          const link = links.find(
-            (l) => l.tagId === oldRow[k].id && l.parentTagId === id
-          );
-          if (isUndefined(link)) return oldRow;
-          const newLink = link.clone();
-          newLink.tagId = v.id;
-          await setTagToTags({ items: [newLink] });
-          await queryClient.invalidateQueries({
-            queryKey: admin.getTagToTags.getQueryKey(),
-          });
-          return newRow;
+          if (k === cat.id) {
+            try {
+              await setTags({ items: [v] });
+              await queryClient.invalidateQueries({
+                queryKey: admin.getTags.getQueryKey(),
+              });
+              return newRow;
+            } catch {
+              return oldRow;
+            }
+          } else {
+            const link = isUndefined(oldRow[k])
+              ? new TagToTag({ parentTagId: id, tagId: newRow[k].id })
+              : links.find(
+                  (l) => l.tagId === oldRow[k].id && l.parentTagId === id
+                );
+            if (isUndefined(link)) return oldRow;
+            const newLink = link.clone();
+            newLink.tagId = v.id;
+            try {
+              await setTagToTags({ items: [newLink] });
+              await queryClient.invalidateQueries({
+                queryKey: admin.getTagToTags.getQueryKey(),
+              });
+              return newRow;
+            } catch {
+              return oldRow;
+            }
+          }
         }
         return oldRow;
       }}

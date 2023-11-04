@@ -1,8 +1,9 @@
-import { FilterAlt } from "@mui/icons-material";
+import { Add, FilterAlt } from "@mui/icons-material";
 import {
   Box,
   Divider,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
@@ -12,15 +13,18 @@ import {
   useTheme,
 } from "@mui/material";
 import { GridFilterModel } from "@mui/x-data-grid";
-import { useQuery } from "@tanstack/react-query";
-import { first, isString } from "lodash";
-import React, { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { first, isString, isUndefined } from "lodash";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { EMPTY_ARR } from "../../../consts";
+import * as admin from "../../../protos/turbotin-Admin_connectquery";
 import {
   getCategories,
   getTagToTags,
   getTags,
 } from "../../../protos/turbotin-Admin_connectquery";
+import { Tag, TagList } from "../../../protos/turbotin_pb";
+import LoadingIcon from "../../../util/components/loadingIcon";
 import TagGrid from "./tagGrid";
 import { NULL_CAT, OPERATOR, getChildren } from "./util";
 
@@ -33,21 +37,43 @@ const Tags = (): JSX.Element => {
   const cats = cats_?.items ?? EMPTY_ARR;
   const links = links_?.items ?? EMPTY_ARR;
 
-  const tagMap = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
-  const catMap = useMemo(() => new Map(cats.map((c) => [c.id, c])), [cats]);
-
   const [filterModel, setFilterModel] = useState<GridFilterModel>();
 
   const [cat_, setCat] = useState<number | undefined>();
   const [col_, setCol] = useState<string | undefined>();
 
+  const newTagRef = useRef<HTMLInputElement>();
+
+  const tagMap = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
+  const catMap = useMemo(() => new Map(cats.map((c) => [c.id, c])), [cats]);
+
+  const { mutateAsync: setTags, isLoading } = useMutation(
+    admin.setTags.useMutation()
+  );
+  const queryClient = useQueryClient();
+
   const cat = cats.find((c) => c.id === cat_) ?? first(cats) ?? NULL_CAT;
 
   const { palette } = useTheme();
+
   const children = getChildren(cat, catMap, tagMap, links);
 
   const col =
     isString(col_) && children.some((c) => c.name === col_) ? col_ : cat.name;
+
+  const addTag = useCallback(async () => {
+    const el = newTagRef.current;
+    if (isUndefined(el)) return;
+    const value = el.value;
+    if (value.length === 0) return;
+    await setTags(
+      new TagList({ items: [new Tag({ value, categoryId: cat.id })] })
+    );
+    el.value = "";
+    await queryClient.invalidateQueries({
+      queryKey: admin.getTags.getQueryKey(),
+    });
+  }, [cat, setTags, queryClient]);
 
   return (
     <Box
@@ -111,6 +137,17 @@ const Tags = (): JSX.Element => {
             endAdornment: <FilterAlt sx={{ color: palette.text.disabled }} />,
           }}
         />
+        <TextField
+          inputRef={newTagRef}
+          label={`Add ${cat.name}`}
+          sx={{ backgroundColor: palette.background.paper, ml: "auto" }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void addTag();
+          }}
+        />
+        <IconButton onClick={addTag} color="primary">
+          {isLoading ? <LoadingIcon /> : <Add />}
+        </IconButton>
       </Box>
       <Box sx={{ flex: 1, display: "flex", gap: 2, p: 2, minHeight: 0 }}>
         <Box sx={{ flex: 1, height: "100%", minWidth: 0 }}>

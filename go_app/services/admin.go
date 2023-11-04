@@ -78,7 +78,18 @@ func (s *Admin) GetTags(ctx context.Context, req *Request[pb.EmptyArgs]) (*Respo
 }
 
 func (s *Admin) SetTags(ctx context.Context, req *Request[pb.TagList]) (*Response[pb.EmptyArgs], error) {
-	return nil, nil
+	DB.Transaction(func(tx *gorm.DB) error {
+		tags := []*models.Tag{}
+		for _, tag := range req.Msg.Items {
+			tags = append(tags, &models.Tag{
+				Value:      tag.Value,
+				CategoryId: uint(tag.GetCategoryId()),
+				Model:      gorm.Model{ID: uint(tag.Id)},
+			})
+		}
+		return tx.Save(tags).Error
+	})
+	return NewResponse[pb.EmptyArgs](nil), nil
 }
 
 func (s *Admin) GetCategories(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.CategoryList], error) {
