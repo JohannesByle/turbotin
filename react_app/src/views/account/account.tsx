@@ -67,7 +67,7 @@ const Account = (): JSX.Element => {
         onClick={async () => {
           document.cookie = cookie.serialize(JWT_KEY, "", {
             expires: new Date(),
-            path: `/${auth.Auth.typeName}`,
+            path: "/",
           });
           await client.invalidateQueries({
             queryKey: auth.getCurrentUser.getQueryKey(),
