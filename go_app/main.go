@@ -65,7 +65,6 @@ func fileHandler(h http.Handler) http.Handler {
 func main() {
 	util.InitEnv()
 	util.InitGorm()
-	// util.PortCategories()
 
 	opts := connect.WithInterceptors(util.LOG_INTERCEPTOR, util.AUTH_INTERCEPTOR)
 
