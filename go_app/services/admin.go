@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 
 	"turbotin/models"
 	pb "turbotin/protos"
@@ -12,6 +13,96 @@ import (
 )
 
 type Admin struct{}
+
+func recurse(id int, tagMap map[int][]int, catMap map[int]int, seenTags map[int]bool, seenCats map[int]map[int]bool) error {
+	catId, ok := catMap[id]
+	if !ok {
+		return errors.New("Missing category")
+	}
+
+	_, seen := seenTags[id]
+	if seen {
+		return errors.New("Tag cycle detected")
+	}
+	seenTags[id] = true
+
+	_, ok = seenCats[catId]
+	if !ok {
+		seenCats[catId] = map[int]bool{}
+	}
+
+	children, ok := tagMap[id]
+	if !ok {
+		return nil
+	}
+
+	for _, tagId := range children {
+		childCatId, ok := catMap[tagId]
+		if !ok {
+			return errors.New("Missing category")
+		}
+		seenCats[catId][childCatId] = true
+
+		err := recurse(tagId, tagMap, catMap, seenTags, seenCats)
+		if err != nil {
+			return err
+		}
+		if len(seenTags) != len(seenCats) {
+			return errors.New("Cats and tags aren't one-one")
+		}
+
+	}
+	seenTags[id] = false
+	return nil
+
+}
+
+func assertStructureValid(tx *gorm.DB) error {
+	tagMap := map[int][]int{}
+	links := []*models.TagToTag{}
+	if err := tx.Find(&links); err.Error != nil {
+		return err.Error
+	}
+	for _, link := range links {
+		parentTagId := int(link.ParentTagId)
+		tagId := int(link.TagId)
+		_, ok := tagMap[parentTagId]
+		if !ok {
+			tagMap[parentTagId] = []int{}
+		}
+		tagMap[parentTagId] = append(tagMap[parentTagId], tagId)
+	}
+
+	catMap := map[int]int{}
+	tags := []*models.Tag{}
+	if err := tx.Find(&tags).Error; err != nil {
+		return err
+	}
+	for _, tag := range tags {
+		catMap[int(tag.ID)] = int(tag.CategoryId)
+	}
+	seenCats := map[int]map[int]bool{}
+	for _, tag := range tags {
+		err := recurse(int(tag.ID), tagMap, catMap, map[int]bool{}, seenCats)
+
+		if err != nil {
+			return err
+		}
+	}
+	for catId, children := range seenCats {
+		for childId := range children {
+			otherChildren, ok := seenCats[childId]
+			if !ok {
+				continue
+			}
+			if otherChildren[catId] {
+				return errors.New("Invalid category hierarchy")
+			}
+
+		}
+	}
+	return nil
+}
 
 func (s *Admin) GetTobaccoToTags(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.TobaccoToTagList], error) {
 	tags := []*models.TobaccoToTag{}
@@ -49,7 +140,7 @@ func (s *Admin) GetTagToTags(ctx context.Context, req *Request[pb.EmptyArgs]) (*
 }
 
 func (s *Admin) SetTagToTags(ctx context.Context, req *Request[pb.TagToTagList]) (*Response[pb.EmptyArgs], error) {
-	DB.Transaction(func(tx *gorm.DB) error {
+	err := DB.Transaction(func(tx *gorm.DB) error {
 		links := []*models.TagToTag{}
 		for _, link := range req.Msg.Items {
 			links = append(links, &models.TagToTag{
@@ -58,8 +149,14 @@ func (s *Admin) SetTagToTags(ctx context.Context, req *Request[pb.TagToTagList])
 				Model:       gorm.Model{ID: uint(link.Id)},
 			})
 		}
-		return tx.Save(links).Error
+		if err := tx.Save(links).Error; err != nil {
+			return err
+		}
+		return assertStructureValid(tx)
 	})
+	if err != nil {
+		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
+	}
 	return NewResponse[pb.EmptyArgs](nil), nil
 }
 
@@ -78,7 +175,7 @@ func (s *Admin) GetTags(ctx context.Context, req *Request[pb.EmptyArgs]) (*Respo
 }
 
 func (s *Admin) SetTags(ctx context.Context, req *Request[pb.TagList]) (*Response[pb.EmptyArgs], error) {
-	DB.Transaction(func(tx *gorm.DB) error {
+	err := DB.Transaction(func(tx *gorm.DB) error {
 		tags := []*models.Tag{}
 		for _, tag := range req.Msg.Items {
 			tags = append(tags, &models.Tag{
@@ -89,6 +186,9 @@ func (s *Admin) SetTags(ctx context.Context, req *Request[pb.TagList]) (*Respons
 		}
 		return tx.Save(tags).Error
 	})
+	if err != nil {
+		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
+	}
 	return NewResponse[pb.EmptyArgs](nil), nil
 }
 
