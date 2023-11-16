@@ -14,15 +14,22 @@ import (
 
 type Admin struct{}
 
+var (
+	MISSING_CAT  = errors.New("Missing category")
+	TAG_CYCLE    = errors.New("Tag cycle detected")
+	INVALID_CAT  = errors.New("Invalid category hierarchy")
+	NON_ROOT_CAT = errors.New("Tobacco links must all be root categories")
+)
+
 func recurse(id int, tagMap map[int][]int, catMap map[int]int, seenTags map[int]bool, seenCats map[int]map[int]bool) error {
 	catId, ok := catMap[id]
 	if !ok {
-		return errors.New("Missing category")
+		return MISSING_CAT
 	}
 
 	_, seen := seenTags[id]
 	if seen {
-		return errors.New("Tag cycle detected")
+		return TAG_CYCLE
 	}
 	seenTags[id] = true
 
@@ -39,7 +46,7 @@ func recurse(id int, tagMap map[int][]int, catMap map[int]int, seenTags map[int]
 	for _, tagId := range children {
 		childCatId, ok := catMap[tagId]
 		if !ok {
-			return errors.New("Missing category")
+			return MISSING_CAT
 		}
 		seenCats[catId][childCatId] = true
 
@@ -48,7 +55,7 @@ func recurse(id int, tagMap map[int][]int, catMap map[int]int, seenTags map[int]
 			return err
 		}
 		if len(seenTags) != len(seenCats) {
-			return errors.New("Cats and tags aren't one-one")
+			return TAG_CYCLE
 		}
 
 	}
@@ -58,10 +65,33 @@ func recurse(id int, tagMap map[int][]int, catMap map[int]int, seenTags map[int]
 }
 
 func assertStructureValid(tx *gorm.DB) error {
+	catMap := map[int]int{}
+	tags := []*models.Tag{}
+	if err := tx.Find(&tags).Error; err != nil {
+		return err
+	}
+	for _, tag := range tags {
+		catMap[int(tag.ID)] = int(tag.CategoryId)
+	}
+
+	tobaccoLinks := []*models.TobaccoToTag{}
+	rootCats := map[int]bool{}
+	if err := tx.Find(&tobaccoLinks).Error; err != nil {
+		return err
+	}
+	for _, tobaccoLink := range tobaccoLinks {
+		tagId := int(tobaccoLink.TagId)
+		cat, ok := catMap[tagId]
+		if !ok {
+			return MISSING_CAT
+		}
+		rootCats[cat] = true
+	}
+
 	tagMap := map[int][]int{}
 	links := []*models.TagToTag{}
-	if err := tx.Find(&links); err.Error != nil {
-		return err.Error
+	if err := tx.Find(&links).Error; err != nil {
+		return err
 	}
 	for _, link := range links {
 		parentTagId := int(link.ParentTagId)
@@ -71,20 +101,20 @@ func assertStructureValid(tx *gorm.DB) error {
 			tagMap[parentTagId] = []int{}
 		}
 		tagMap[parentTagId] = append(tagMap[parentTagId], tagId)
+
+		cat, ok := catMap[tagId]
+		if !ok {
+			return MISSING_CAT
+		}
+		if rootCats[cat] {
+			return NON_ROOT_CAT
+		}
+
 	}
 
-	catMap := map[int]int{}
-	tags := []*models.Tag{}
-	if err := tx.Find(&tags).Error; err != nil {
-		return err
-	}
-	for _, tag := range tags {
-		catMap[int(tag.ID)] = int(tag.CategoryId)
-	}
 	seenCats := map[int]map[int]bool{}
 	for _, tag := range tags {
 		err := recurse(int(tag.ID), tagMap, catMap, map[int]bool{}, seenCats)
-
 		if err != nil {
 			return err
 		}
@@ -92,11 +122,8 @@ func assertStructureValid(tx *gorm.DB) error {
 	for catId, children := range seenCats {
 		for childId := range children {
 			otherChildren, ok := seenCats[childId]
-			if !ok {
-				continue
-			}
-			if otherChildren[catId] {
-				return errors.New("Invalid category hierarchy")
+			if ok && otherChildren[catId] {
+				return INVALID_CAT
 			}
 
 		}
@@ -120,7 +147,18 @@ func (s *Admin) GetTobaccoToTags(ctx context.Context, req *Request[pb.EmptyArgs]
 
 func (s *Admin) SetTobaccoToTags(ctx context.Context, req *Request[pb.TobaccoToTagList]) (*Response[pb.EmptyArgs], error) {
 	DB.Transaction(func(tx *gorm.DB) error {
-		return nil
+		links := []*models.TobaccoToTag{}
+		for _, link := range req.Msg.Items {
+			links = append(links, &models.TobaccoToTag{
+				TagId:     uint(link.TagId),
+				TobaccoId: uint(link.TobaccoId),
+				Model:     gorm.Model{ID: uint(link.Id)},
+			})
+		}
+		if err := tx.Save(links).Error; err != nil {
+			return err
+		}
+		return assertStructureValid(tx)
 	})
 	return NewResponse[pb.EmptyArgs](nil), nil
 }
@@ -184,7 +222,10 @@ func (s *Admin) SetTags(ctx context.Context, req *Request[pb.TagList]) (*Respons
 				Model:      gorm.Model{ID: uint(tag.Id)},
 			})
 		}
-		return tx.Save(tags).Error
+		if err := tx.Save(tags).Error; err != nil {
+			return err
+		}
+		return assertStructureValid(tx)
 	})
 	if err != nil {
 		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
@@ -206,5 +247,21 @@ func (s *Admin) GetCategories(ctx context.Context, req *Request[pb.EmptyArgs]) (
 }
 
 func (s *Admin) SetCategories(ctx context.Context, req *Request[pb.CategoryList]) (*Response[pb.EmptyArgs], error) {
-	return nil, nil
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		cats := []*models.Category{}
+		for _, cat := range req.Msg.Items {
+			cats = append(cats, &models.Category{
+				Name:  cat.Name,
+				Model: gorm.Model{ID: uint(cat.Id)},
+			})
+		}
+		if err := tx.Save(cats).Error; err != nil {
+			return err
+		}
+		return assertStructureValid(tx)
+	})
+	if err != nil {
+		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
+	}
+	return NewResponse[pb.EmptyArgs](nil), nil
 }
