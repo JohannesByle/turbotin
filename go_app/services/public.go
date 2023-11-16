@@ -3,8 +3,9 @@ package services
 import (
 	"strings"
 	"time"
+	"turbotin/models"
 	pb "turbotin/protos"
-	"turbotin/util"
+	. "turbotin/util"
 
 	. "turbotin/gen/turbotin/table"
 
@@ -59,7 +60,7 @@ func (s *Public) TodaysTobaccos(ctx context.Context, req *Request[pb.EmptyArgs])
 		WHERE(isLatestDay(t1)).
 		GROUP_BY(t1.TobaccoID).Sql()
 
-	rows, err := util.DB.Raw(stmt).Rows()
+	rows, err := DB.Raw(stmt).Rows()
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +69,7 @@ func (s *Public) TodaysTobaccos(ctx context.Context, req *Request[pb.EmptyArgs])
 	items := []*pb.ObsTobacco{}
 	for rows.Next() {
 		row := Row{}
-		util.DB.ScanRows(rows, &row)
+		DB.ScanRows(rows, &row)
 
 		items = append(items, &pb.ObsTobacco{
 			TobaccoId: uint32(row.TobaccoID),
@@ -82,4 +83,19 @@ func (s *Public) TodaysTobaccos(ctx context.Context, req *Request[pb.EmptyArgs])
 	}
 
 	return NewResponse(&pb.ObsTobaccoList{Items: items}), nil
+}
+
+func (s *Public) GetTobaccos(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.TobaccoList], error) {
+	rows := []*models.Tobacco{}
+	DB.Find(&rows)
+	resp := &pb.TobaccoList{Items: []*pb.Tobacco{}}
+	for _, row := range rows {
+		resp.Items = append(resp.Items, &pb.Tobacco{
+			Id:    uint32(row.ID),
+			Item:  row.Item,
+			Store: pb.Store(row.Store),
+			Link:  row.Link,
+		})
+	}
+	return NewResponse(resp), nil
 }

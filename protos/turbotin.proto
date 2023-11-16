@@ -108,6 +108,18 @@ message ChangePasswordArgs {
 
 service Public {
   rpc TodaysTobaccos(EmptyArgs) returns (ObsTobaccoList) {}
+  rpc GetTobaccos(EmptyArgs) returns (TobaccoList) {}
+}
+
+message Tobacco {
+  uint32 id = 1;
+  string item = 2;
+  Store store = 3;
+  string link = 4;
+}
+
+message TobaccoList {
+  repeated Tobacco items = 1;
 }
 
 message ObsTobacco {
