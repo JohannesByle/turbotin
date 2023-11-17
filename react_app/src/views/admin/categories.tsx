@@ -2,13 +2,13 @@ import { Add } from "@mui/icons-material";
 import { Box, IconButton, TextField, useTheme } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isUndefined } from "lodash";
 import React, { useCallback, useRef } from "react";
 import { EMPTY_ARR, voidFn } from "../../consts";
-import { getCategories } from "../../protos/turbotin-Admin_connectquery";
+import * as admin from "../../protos/turbotin-Admin_connectquery";
+import { getCategories } from "../../protos/turbotin-Public_connectquery";
 import { Category, CategoryList } from "../../protos/turbotin_pb";
 import LoadingIcon from "../../util/components/loadingIcon";
-import * as admin from "../../protos/turbotin-Admin_connectquery";
-import { isUndefined } from "lodash";
 
 const COLUMNS: Array<GridColDef<Category>> = [
   {
@@ -42,7 +42,7 @@ const Categories = (): JSX.Element => {
     await setCats(new CategoryList({ items: [new Category({ name: value })] }));
     el.value = "";
     await queryClient.invalidateQueries({
-      queryKey: admin.getCategories.getQueryKey(),
+      queryKey: getCategories.getQueryKey(),
     });
   }, [setCats, queryClient]);
 
@@ -79,7 +79,7 @@ const Categories = (): JSX.Element => {
           processRowUpdate={async (newRow) => {
             await setCats(new CategoryList({ items: [newRow] })).catch(voidFn);
             await queryClient.invalidateQueries({
-              queryKey: admin.getCategories.getQueryKey(),
+              queryKey: getCategories.getQueryKey(),
             });
             return newRow;
           }}

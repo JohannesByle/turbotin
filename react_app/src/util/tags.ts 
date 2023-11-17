@@ -1,0 +1,7 @@
+import { NumericDictionary } from "lodash";
+
+export const useTags = (): {
+  tobaccoTags: Map<number, NumericDictionary<string>>;
+} => {
+  return { tobaccoTags: new Map() };
+};

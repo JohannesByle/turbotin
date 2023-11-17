@@ -13,7 +13,7 @@ import {
 import TagEditCell from "../editCell";
 import { NULL_CAT, TRow, getCats, getValidCats } from "./util";
 import * as admin from "../../../protos/turbotin-Admin_connectquery";
-import { getTobaccoToTags } from "../../../protos/turbotin-Admin_connectquery";
+import { getTobaccoToTags } from "../../../protos/turbotin-Public_connectquery";
 
 type TProps = {
   tags: Tag[];

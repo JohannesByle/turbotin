@@ -7,6 +7,10 @@ import * as admin from "../../../protos/turbotin-Admin_connectquery";
 import { Category, Tag, TagToTag } from "../../../protos/turbotin_pb";
 import TagEditCell from "../editCell";
 import { NULL_CAT, TRow, getChildren, getValidCats } from "./util";
+import {
+  getTagToTags,
+  getTags,
+} from "../../../protos/turbotin-Public_connectquery";
 
 type TProps = {
   cat: Category;
@@ -121,7 +125,7 @@ const TagGrid = (props: TProps): JSX.Element => {
             try {
               await setTags({ items: [v] });
               await queryClient.invalidateQueries({
-                queryKey: admin.getTags.getQueryKey(),
+                queryKey: getTags.getQueryKey(),
               });
               return newRow;
             } catch {
@@ -139,7 +143,7 @@ const TagGrid = (props: TProps): JSX.Element => {
             try {
               await setTagToTags({ items: [newLink] });
               await queryClient.invalidateQueries({
-                queryKey: admin.getTagToTags.getQueryKey(),
+                queryKey: getTagToTags.getQueryKey(),
               });
               return newRow;
             } catch {

@@ -108,7 +108,12 @@ message ChangePasswordArgs {
 
 service Public {
   rpc TodaysTobaccos(EmptyArgs) returns (ObsTobaccoList) {}
+
   rpc GetTobaccos(EmptyArgs) returns (TobaccoList) {}
+  rpc GetTobaccoToTags(EmptyArgs) returns (TobaccoToTagList) {}
+  rpc GetTagToTags(EmptyArgs) returns (TagToTagList) {}
+  rpc GetTags(EmptyArgs) returns (TagList) {}
+  rpc GetCategories(EmptyArgs) returns (CategoryList) {}
 }
 
 message Tobacco {
@@ -137,16 +142,9 @@ message ObsTobaccoList {
 }
 
 service Admin {
-  rpc GetTobaccoToTags(EmptyArgs) returns (TobaccoToTagList) {}
   rpc SetTobaccoToTags(TobaccoToTagList) returns (EmptyArgs) {}
-
-  rpc GetTagToTags(EmptyArgs) returns (TagToTagList) {}
   rpc SetTagToTags(TagToTagList) returns (EmptyArgs) {}
-
-  rpc GetTags(EmptyArgs) returns (TagList) {}
   rpc SetTags(TagList) returns (EmptyArgs) {}
-
-  rpc GetCategories(EmptyArgs) returns (CategoryList) {}
   rpc SetCategories(CategoryList) returns (EmptyArgs) {}
 }
 

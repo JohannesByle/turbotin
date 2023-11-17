@@ -22,7 +22,7 @@ import {
   getCategories,
   getTagToTags,
   getTags,
-} from "../../../protos/turbotin-Admin_connectquery";
+} from "../../../protos/turbotin-Public_connectquery";
 import { Tag, TagList } from "../../../protos/turbotin_pb";
 import LoadingIcon from "../../../util/components/loadingIcon";
 import TagGrid from "./tagGrid";
@@ -71,7 +71,7 @@ const Tags = (): JSX.Element => {
     );
     el.value = "";
     await queryClient.invalidateQueries({
-      queryKey: admin.getTags.getQueryKey(),
+      queryKey: getTags.getQueryKey(),
     });
   }, [cat, setTags, queryClient]);
 

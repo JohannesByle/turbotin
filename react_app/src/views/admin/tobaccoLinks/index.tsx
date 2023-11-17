@@ -17,8 +17,8 @@ import {
   getTagToTags,
   getTags,
   getTobaccoToTags,
-} from "../../../protos/turbotin-Admin_connectquery";
-import { getTobaccos } from "../../../protos/turbotin-Public_connectquery";
+  getTobaccos,
+} from "../../../protos/turbotin-Public_connectquery";
 import TobaccoLinksGrid from "./tobaccoLinksGrid";
 import { OPERATOR, getCats } from "./util";
 
