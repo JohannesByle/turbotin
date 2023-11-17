@@ -154,3 +154,28 @@ func (s *Public) GetCategories(ctx context.Context, req *Request[pb.EmptyArgs]) 
 	}
 	return NewResponse(resp), nil
 }
+
+func (s *Public) GetAllTagData(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.AllTagData], error) {
+	links, err := s.GetTobaccoToTags(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	tagLinks, err := s.GetTagToTags(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	tags, err := s.GetTags(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	cats, err := s.GetCategories(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	resp := &pb.AllTagData{
+		Links:    links.Msg.Items,
+		TagLinks: tagLinks.Msg.Items,
+		Tags:     tags.Msg.Items,
+		Cats:     cats.Msg.Items}
+	return NewResponse(resp), nil
+}

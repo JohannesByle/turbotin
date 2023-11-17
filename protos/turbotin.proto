@@ -114,6 +114,8 @@ service Public {
   rpc GetTagToTags(EmptyArgs) returns (TagToTagList) {}
   rpc GetTags(EmptyArgs) returns (TagList) {}
   rpc GetCategories(EmptyArgs) returns (CategoryList) {}
+
+  rpc GetAllTagData(EmptyArgs) returns (AllTagData) {}
 }
 
 message Tobacco {
@@ -141,16 +143,18 @@ message ObsTobaccoList {
   repeated ObsTobacco items = 1;
 }
 
+message AllTagData {
+  repeated TobaccoToTag links = 1;
+  repeated TagToTag tag_links = 2;
+  repeated Tag tags = 3;
+  repeated Category cats = 4;
+}
+
 service Admin {
   rpc SetTobaccoToTags(TobaccoToTagList) returns (EmptyArgs) {}
   rpc SetTagToTags(TagToTagList) returns (EmptyArgs) {}
   rpc SetTags(TagList) returns (EmptyArgs) {}
   rpc SetCategories(CategoryList) returns (EmptyArgs) {}
-}
-
-enum DataType {
-  DATA_TYPE_UNSPECIFIED = 0;
-  DATA_TYPE_STRING = 1;
 }
 
 message TobaccoToTag {

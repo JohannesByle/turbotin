@@ -3,13 +3,11 @@ import { Dictionary, groupBy, isUndefined } from "lodash";
 import { useMemo } from "react";
 import { EMPTY_ARR } from "../consts";
 import {
-  getCategories,
-  getTagToTags,
-  getTags,
-  getTobaccoToTags,
+  getAllTagData,
   getTobaccos,
 } from "../protos/turbotin-Public_connectquery";
 import {
+  AllTagData,
   Category,
   Tag,
   TagToTag,
@@ -24,17 +22,21 @@ export const useTags = (): {
   links: TobaccoToTag[];
   tagLinks: TagToTag[];
   tobaccos: Tobacco[];
+  isFetching: boolean;
+  tagMap: Map<number, Tag>;
+  catMap: Map<number, Category>;
 } => {
-  const { data: tags_ } = useQuery(getTags.useQuery());
-  const { data: cats_ } = useQuery(getCategories.useQuery());
-  const { data: links_ } = useQuery(getTobaccoToTags.useQuery());
-  const { data: tagLinks_ } = useQuery(getTagToTags.useQuery());
-  const { data: tobaccos_ } = useQuery(getTobaccos.useQuery());
+  const { data: tobaccos_, isFetching: isFetchingTobaccos } = useQuery(
+    getTobaccos.useQuery()
+  );
+  const { data, isFetching } = useQuery(getAllTagData.useQuery());
+  const {
+    links = EMPTY_ARR,
+    cats = EMPTY_ARR,
+    tags = EMPTY_ARR,
+    tagLinks = EMPTY_ARR,
+  } = data ?? new AllTagData();
 
-  const tags = tags_?.items ?? EMPTY_ARR;
-  const cats = cats_?.items ?? EMPTY_ARR;
-  const links = links_?.items ?? EMPTY_ARR;
-  const tagLinks = tagLinks_?.items ?? EMPTY_ARR;
   const tobaccos = tobaccos_?.items ?? EMPTY_ARR;
 
   const tagMap = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
@@ -50,7 +52,6 @@ export const useTags = (): {
         link.tagId,
         ...(groups[link.tagId]?.map((l) => l.tagId) ?? []),
       ];
-
       for (const id of tagIds) {
         const tag = tagMap.get(id);
         if (isUndefined(tag)) continue;
@@ -62,5 +63,15 @@ export const useTags = (): {
     return result;
   }, [catMap, links, tagLinks, tagMap]);
 
-  return { tobaccoTags, tags, cats, links, tagLinks, tobaccos };
+  return {
+    tobaccoTags,
+    tags,
+    cats,
+    links,
+    tagLinks,
+    tobaccos,
+    isFetching: isFetching || isFetchingTobaccos,
+    tagMap,
+    catMap,
+  };
 };

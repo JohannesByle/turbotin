@@ -5,13 +5,23 @@ import {
   Checkbox,
   FormControl,
   FormControlLabel,
+  FormLabel,
   Slider,
   TextField,
+  useTheme,
 } from "@mui/material";
-import { isArray, isEmpty, uniq } from "lodash";
+import {
+  groupBy,
+  isArray,
+  isEmpty,
+  isUndefined,
+  merge,
+  toPairs,
+  uniq,
+} from "lodash";
 import React, { useMemo } from "react";
 import { NAME_TO_STORE, STORE_TO_NAME } from "../../consts";
-import { ObsTobacco } from "../../protos/turbotin_pb";
+import { Category, ObsTobacco, Tag } from "../../protos/turbotin_pb";
 import { TSetState, formatUSD } from "../../util";
 import { TFilter } from "./filterUtil";
 
@@ -19,23 +29,30 @@ type TProps = {
   rows: ObsTobacco[];
   filter: TFilter;
   setFilter: TSetState<TFilter>;
+  catMap: Map<number, Category>;
+  tags: Tag[];
 };
 
 const MAX_PRICE = 75;
 const MIN_PRICE = 0;
 
 const Filters = (props: TProps): JSX.Element => {
-  const { filter, setFilter, rows } = props;
+  const { filter, setFilter, rows, catMap, tags } = props;
+
+  const tagGroups = useMemo(() => groupBy(tags, (t) => t.categoryId), [tags]);
 
   const stores = useMemo(
     () => uniq(rows.map((s) => STORE_TO_NAME[s.store])),
     [rows]
   );
 
+  const { palette } = useTheme();
+
   return (
     <FormControl sx={{ width: "300px" }}>
+      <FormLabel sx={{ mb: 1 }}>Filters</FormLabel>
       <TextField
-        sx={{ backgroundColor: "white" }}
+        sx={{ backgroundColor: palette.background.paper }}
         label={"Name"}
         value={filter.item ?? ""}
         onChange={(e) => {
@@ -97,7 +114,7 @@ const Filters = (props: TProps): JSX.Element => {
         renderInput={(params) => (
           <TextField
             {...params}
-            sx={{ backgroundColor: "white", width: "100%" }}
+            sx={{ backgroundColor: palette.background.paper, width: "100%" }}
             label="Store"
           />
         )}
@@ -111,6 +128,31 @@ const Filters = (props: TProps): JSX.Element => {
         }
         limitTags={1}
       />
+      {toPairs(tagGroups).map(([id, tags]) => {
+        const cat = catMap.get(Number(id));
+        if (isUndefined(cat)) return <></>;
+        return (
+          <Autocomplete
+            key={id}
+            options={tags.map((t) => t.value)}
+            value={filter.tags[cat.name] ?? null}
+            onChange={(_, v) =>
+              setFilter((prev) => merge({}, prev, { tags: { [cat.name]: v } }))
+            }
+            sx={{ backgroundColor: palette.background.paper, mt: 1 }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                sx={{
+                  backgroundColor: palette.background.paper,
+                  width: "100%",
+                }}
+                label={cat.name}
+              />
+            )}
+          />
+        );
+      })}
     </FormControl>
   );
 };

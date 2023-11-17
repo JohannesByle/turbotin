@@ -1,7 +1,7 @@
 import { GridColDef, GridFilterModel } from "@mui/x-data-grid";
-import { every, isString, isUndefined } from "lodash";
-import { ObsTobacco, Store } from "../../protos/turbotin_pb";
-import { price } from "./util";
+import { Dictionary, every, isString, isUndefined, toPairs } from "lodash";
+import { Store } from "../../protos/turbotin_pb";
+import { TRow, price } from "./util";
 
 export const FILTER_FIELD = "74526c2d-cbac-4f07-ba46-223744b40912";
 const FILTER_OP = "2a6aef33-ef8f-4070-9044-866b211b538b";
@@ -13,7 +13,7 @@ export const calcFilterModel = (filter: TFilter): GridFilterModel => ({
       : [],
 });
 
-export const FILTER_COL: GridColDef<ObsTobacco> = {
+export const FILTER_COL: GridColDef<TRow> = {
   field: FILTER_FIELD,
   filterOperators: [
     {
@@ -39,11 +39,12 @@ export type TFilter = {
   stores?: Set<Store>;
   inStock?: boolean;
   hasPrice?: boolean;
+  tags: Dictionary<string>;
 };
 
 export const FILTER_FNS: Record<
   keyof TFilter,
-  (row: ObsTobacco, filter: TFilter) => boolean | undefined
+  (row: TRow, filter: TFilter) => boolean | undefined
 > = {
   item: ({ item }, filter) =>
     isString(item) &&
@@ -54,4 +55,6 @@ export const FILTER_FNS: Record<
   stores: ({ store }, { stores = new Set() }) => stores.has(store),
   inStock: (row, { inStock = false }) => !inStock || row.inStock,
   hasPrice: (row, { hasPrice = false }) => !hasPrice || price(row) > 0,
+  tags: (row, filter) =>
+    !toPairs(filter.tags).some(([k, v]) => isString(v) && row.tags[k] !== v),
 };

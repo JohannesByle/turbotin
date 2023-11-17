@@ -1,7 +1,13 @@
 import { ProductionQuantityLimits, Timeline } from "@mui/icons-material";
 import {
   Box,
+  Checkbox,
+  CircularProgress,
   Divider,
+  FormControl,
+  FormControlLabel,
+  FormGroup,
+  FormLabel,
   IconButton,
   Tooltip,
   useMediaQuery,
@@ -37,7 +43,7 @@ import {
   calcFilterModel,
 } from "./filterUtil";
 import Filters from "./filters";
-import { price } from "./util";
+import { TRow, price } from "./util";
 
 type TColVisibilityModel = Partial<
   Record<keyof ObsTobacco | typeof FILTER_FIELD | "price" | "kebap", boolean>
@@ -62,7 +68,7 @@ const DESKTOP_COLS: TColVisibilityModel = {
   kebap: true,
 };
 
-function getRowId(row: ObsTobacco): number {
+function getRowId(row: TRow): number {
   return row.tobaccoId;
 }
 
@@ -76,11 +82,17 @@ const FullTable = (): JSX.Element => {
   const { data, isFetching } = useQuery(todaysTobaccos.useQuery({}));
   const tobaccos = data?.items ?? EMPTY_ARR;
 
-  const [filter, setFilter] = useState<TFilter>({});
-  const [menuRow, setMenuRow] = useState<ObsTobacco>();
+  const [filter, setFilter] = useState<TFilter>({ tags: {} });
+  const [menuRow, setMenuRow] = useState<TRow>();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [visibleTags, setVisibleTags] = useState<Set<number>>(new Set());
-  const { tobaccoTags, cats } = useTags();
+  const {
+    tobaccoTags,
+    cats,
+    isFetching: isFetchingTags,
+    catMap,
+    tags,
+  } = useTags();
 
   const { breakpoints } = useTheme();
   const isMobile = useMediaQuery(breakpoints.down("md"));
@@ -98,7 +110,13 @@ const FullTable = (): JSX.Element => {
   const filterModel = useMemo(() => calcFilterModel(filter), [filter]);
   const deferredFilterModel = useDeferredValue(filterModel);
 
-  const columns: Array<GridColDef<ObsTobacco>> = useMemo(
+  const rows = useMemo(
+    (): TRow[] =>
+      tobaccos.map((t) => ({ ...t, tags: tobaccoTags.get(t.tobaccoId) ?? {} })),
+    [tobaccos, tobaccoTags]
+  );
+
+  const columns: Array<GridColDef<TRow>> = useMemo(
     () => [
       FILTER_COL,
       {
@@ -160,9 +178,9 @@ const FullTable = (): JSX.Element => {
       },
 
       ...cats.map(
-        (c): GridColDef<ObsTobacco> => ({
+        (c): GridColDef<TRow> => ({
           field: String(c.id),
-          valueGetter: ({ row }) => tobaccoTags.get(row.tobaccoId)?.[c.name],
+          valueGetter: ({ row }) => row.tags[c.name],
           headerName: c.name,
         })
       ),
@@ -183,7 +201,7 @@ const FullTable = (): JSX.Element => {
         ),
       },
     ],
-    [cats, filter.item, tobaccoTags]
+    [cats, filter.item]
   );
 
   const actions = useMemo(
@@ -214,7 +232,51 @@ const FullTable = (): JSX.Element => {
       />
       {isDesktop && (
         <>
-          <Filters filter={filter} setFilter={setFilter} rows={tobaccos} />
+          <Box
+            sx={{
+              width: "300px",
+              display: "flex",
+              flexDirection: "column",
+              height: "100%",
+            }}
+          >
+            <Filters
+              filter={filter}
+              setFilter={setFilter}
+              rows={tobaccos}
+              catMap={catMap}
+              tags={tags}
+            />
+            <Divider flexItem sx={{ my: 1 }} />
+            <FormControl sx={{ mt: 1 }} fullWidth>
+              <FormLabel>Columns</FormLabel>
+              {isFetchingTags ? (
+                <CircularProgress sx={{ my: 2, mx: "auto" }} />
+              ) : (
+                <FormGroup>
+                  {cats.map((c) => (
+                    <FormControlLabel
+                      key={c.id}
+                      control={
+                        <Checkbox
+                          checked={visibleTags.has(c.id)}
+                          onChange={() =>
+                            setVisibleTags((prev) => {
+                              const result = new Set(prev);
+                              result.delete(c.id) || result.add(c.id);
+                              return result;
+                            })
+                          }
+                          name={c.name}
+                        />
+                      }
+                      label={c.name}
+                    />
+                  ))}
+                </FormGroup>
+              )}
+            </FormControl>
+          </Box>
           <Divider flexItem orientation={"vertical"} sx={{ mx: 1 }} />
         </>
       )}
@@ -222,9 +284,9 @@ const FullTable = (): JSX.Element => {
         maxWidth={"lg"}
         sx={{ width: "100%", height: "100%", background: "white" }}
       >
-        <DataGrid<ObsTobacco>
+        <DataGrid<TRow>
           columns={columns}
-          rows={tobaccos}
+          rows={rows}
           loading={isFetching}
           density={"compact"}
           columnVisibilityModel={visibiltyModel}
