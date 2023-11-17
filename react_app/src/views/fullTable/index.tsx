@@ -7,11 +7,15 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridColumnVisibilityModel,
+} from "@mui/x-data-grid";
 import { GridInitialStateCommunity } from "@mui/x-data-grid/models/gridStateCommunity";
 import { useQuery } from "@tanstack/react-query";
 import dayjs, { Dayjs } from "dayjs";
-import { isEmpty, isString } from "lodash";
+import { fromPairs, isEmpty, isString } from "lodash";
 import React, { useDeferredValue, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -25,6 +29,7 @@ import { todaysTobaccos } from "../../protos/turbotin-Public_connectquery";
 import { ObsTobacco } from "../../protos/turbotin_pb";
 import { ActionMenu, TAction } from "../../util/actions";
 import BoldSubStr from "../../util/components/boldSubStr";
+import { useTags } from "../../util/tags";
 import {
   FILTER_COL,
   FILTER_FIELD,
@@ -74,11 +79,19 @@ const FullTable = (): JSX.Element => {
   const [filter, setFilter] = useState<TFilter>({});
   const [menuRow, setMenuRow] = useState<ObsTobacco>();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [visibleTags, setVisibleTags] = useState<Set<number>>(new Set());
+  const { tobaccoTags, cats } = useTags();
 
   const { breakpoints } = useTheme();
   const isMobile = useMediaQuery(breakpoints.down("md"));
   const isDesktop = useMediaQuery(breakpoints.up("xl"));
-  const visibiltyModel = isMobile ? MOBILE_COLS : DESKTOP_COLS;
+  const visibiltyModel = useMemo(
+    (): GridColumnVisibilityModel => ({
+      ...(isMobile ? MOBILE_COLS : DESKTOP_COLS),
+      ...fromPairs(cats.map((c) => [String(c.id), visibleTags.has(c.id)])),
+    }),
+    [cats, isMobile, visibleTags]
+  );
 
   const navigate = useNavigate();
 
@@ -145,6 +158,14 @@ const FullTable = (): JSX.Element => {
             </Tooltip>
           ),
       },
+
+      ...cats.map(
+        (c): GridColDef<ObsTobacco> => ({
+          field: String(c.id),
+          valueGetter: ({ row }) => tobaccoTags.get(row.tobaccoId)?.[c.name],
+          headerName: c.name,
+        })
+      ),
       {
         field: "kebap",
         width: 40,
@@ -153,7 +174,6 @@ const FullTable = (): JSX.Element => {
         renderCell: ({ row }) => (
           <IconButton
             onClick={(e) => {
-              console.log(e);
               setMenuRow(row);
               setAnchorEl(e.currentTarget);
             }}
@@ -163,7 +183,7 @@ const FullTable = (): JSX.Element => {
         ),
       },
     ],
-    [filter.item]
+    [cats, filter.item, tobaccoTags]
   );
 
   const actions = useMemo(
@@ -213,8 +233,8 @@ const FullTable = (): JSX.Element => {
           getRowId={getRowId}
           disableColumnFilter
           disableColumnSelector
-          autoPageSize
           disableColumnMenu
+          autoPageSize
         />
       </Box>
     </Box>
