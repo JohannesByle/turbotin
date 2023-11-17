@@ -5,7 +5,7 @@ import { fromPairs, groupBy, isUndefined, sortBy, toPairs } from "lodash";
 import React, { useMemo } from "react";
 import * as admin from "../../../protos/turbotin-Admin_connectquery";
 import { Category, Tag, TagToTag } from "../../../protos/turbotin_pb";
-import TagEditCell from "./editCell";
+import TagEditCell from "../editCell";
 import { NULL_CAT, TRow, getChildren, getValidCats } from "./util";
 
 type TProps = {

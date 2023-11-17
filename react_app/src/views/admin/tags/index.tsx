@@ -149,18 +149,16 @@ const Tags = (): JSX.Element => {
           {isLoading ? <LoadingIcon /> : <Add />}
         </IconButton>
       </Box>
-      <Box sx={{ flex: 1, display: "flex", gap: 2, p: 2, minHeight: 0 }}>
-        <Box sx={{ flex: 1, height: "100%", minWidth: 0 }}>
-          <TagGrid
-            key={cat.id}
-            cat={cat}
-            catMap={catMap}
-            links={links}
-            tagMap={tagMap}
-            tags={tags}
-            filterModel={filterModel}
-          />
-        </Box>
+      <Box sx={{ flex: 1, height: "100%", minWidth: 0, p: 2, minHeight: 0 }}>
+        <TagGrid
+          key={cat.id}
+          cat={cat}
+          catMap={catMap}
+          links={links}
+          tagMap={tagMap}
+          tags={tags}
+          filterModel={filterModel}
+        />
       </Box>
     </Box>
   );

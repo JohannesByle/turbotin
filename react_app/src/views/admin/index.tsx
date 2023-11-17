@@ -1,21 +1,24 @@
-import { Category, Tag } from "@mui/icons-material";
+import { Category, Link, Tag } from "@mui/icons-material";
 import { Box, Divider, Tab, Tabs, useTheme } from "@mui/material";
 import React, { useState } from "react";
 import { arrayOf } from "../../util";
 import { TTab } from "./consts";
 import Tags from "./tags";
 import Categories from "./categories";
+import TobaccoLinks from "./tobaccoLinks";
 
-const { tags, categories } = TTab;
+const { tags, categories, tobaccoLinks } = TTab;
 
 const VIEWS: Record<TTab, JSX.Element> = {
   [tags]: <Tags />,
   [categories]: <Categories />,
+  [tobaccoLinks]: <TobaccoLinks />,
 };
 
 const ICONS: Record<TTab, JSX.Element> = {
   [tags]: <Tag />,
   [categories]: <Category />,
+  [tobaccoLinks]: <Link />,
 };
 
 const Admin = (): JSX.Element => {

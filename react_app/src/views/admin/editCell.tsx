@@ -4,13 +4,12 @@ import {
   TextField,
 } from "@mui/material";
 import { GridRenderEditCellParams } from "@mui/x-data-grid";
-import { Dictionary, sortBy } from "lodash";
+import { Dictionary, NumericDictionary, sortBy } from "lodash";
 import React, { SyntheticEvent, useCallback, useEffect, useRef } from "react";
-import { Category, Tag } from "../../../protos/turbotin_pb";
-import { TRow } from "./util";
+import { Category, Tag } from "../../protos/turbotin_pb";
 
 type TProps = {
-  params: GridRenderEditCellParams<TRow>;
+  params: GridRenderEditCellParams<NumericDictionary<Tag>>;
   c: Category;
   catValues: Dictionary<Tag[]>;
 };
