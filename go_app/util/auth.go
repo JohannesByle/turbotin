@@ -32,9 +32,12 @@ const (
 	SET_COOKIE      = "Set-Cookie"
 	COOKIE          = "Cookie"
 	COOKIE_NUM_DAYS = 7
+
+	SECRET_KEY_DURATION = time.Duration(COOKIE_NUM_DAYS*24) * time.Hour
 )
 
 var SECRET_KEY = make([]byte, 512)
+var SECRET_KEY_DATE = time.Now()
 var HAS_INIT_KEY bool
 
 var EMAIL_REGEX, _ = regexp.Compile("^[A-z0-9+_.-]+@[A-z0-9.-]+$")
@@ -83,7 +86,7 @@ func DeleteEmail[T any]() *Response[T] {
 }
 
 func initKey() {
-	if HAS_INIT_KEY {
+	if HAS_INIT_KEY && !IsAfter(SECRET_KEY_DATE, SECRET_KEY_DURATION) {
 		return
 	}
 	_, err := rand.Read(SECRET_KEY)
