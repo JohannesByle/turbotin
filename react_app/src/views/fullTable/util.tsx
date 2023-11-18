@@ -1,6 +1,6 @@
-import { Dictionary, isUndefined } from "lodash";
-import { ObsTobacco } from "../../protos/turbotin_pb";
 import { PlainMessage } from "@bufbuild/protobuf";
+import { Dictionary, isUndefined } from "lodash";
+import { ObsTobacco, Tag } from "../../protos/turbotin_pb";
 
 export const NUMBER_REGEX = /(\d+.\d+)/;
 
@@ -9,4 +9,7 @@ export function price(t: TRow): number {
   return isUndefined(match) ? NaN : parseInt(match);
 }
 
-export type TRow = PlainMessage<ObsTobacco> & { tags: Dictionary<string> };
+export type TRow = PlainMessage<ObsTobacco> & {
+  tagValues: Dictionary<string>;
+  tags: Tag[];
+};

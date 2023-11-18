@@ -56,5 +56,7 @@ export const FILTER_FNS: Record<
   inStock: (row, { inStock = false }) => !inStock || row.inStock,
   hasPrice: (row, { hasPrice = false }) => !hasPrice || price(row) > 0,
   tags: (row, filter) =>
-    !toPairs(filter.tags).some(([k, v]) => isString(v) && row.tags[k] !== v),
+    !toPairs(filter.tags).some(
+      ([k, v]) => isString(v) && row.tagValues[k] !== v
+    ),
 };

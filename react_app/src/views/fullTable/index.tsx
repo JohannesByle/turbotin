@@ -21,15 +21,16 @@ import {
 import { GridInitialStateCommunity } from "@mui/x-data-grid/models/gridStateCommunity";
 import { useQuery } from "@tanstack/react-query";
 import dayjs, { Dayjs } from "dayjs";
-import { fromPairs, isEmpty, isString } from "lodash";
+import { fromPairs, isEmpty, isString, isUndefined } from "lodash";
 import React, { useDeferredValue, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  BLEND,
   EMPTY_ARR,
+  INDIVIDUAL_BLENDS,
   KebapMenu,
   MS_PER_SECOND,
   STORE_TO_NAME,
-  TRoute,
 } from "../../consts";
 import { todaysTobaccos } from "../../protos/turbotin-Public_connectquery";
 import { ObsTobacco } from "../../protos/turbotin_pb";
@@ -112,8 +113,17 @@ const FullTable = (): JSX.Element => {
 
   const rows = useMemo(
     (): TRow[] =>
-      tobaccos.map((t) => ({ ...t, tags: tobaccoTags.get(t.tobaccoId) ?? {} })),
-    [tobaccos, tobaccoTags]
+      tobaccos.map((t) => {
+        const tags = tobaccoTags.get(t.tobaccoId) ?? [];
+        return {
+          ...t,
+          tags,
+          tagValues: fromPairs(
+            tags.map((t) => [catMap.get(t.categoryId)?.name, t.value])
+          ),
+        };
+      }),
+    [tobaccos, tobaccoTags, catMap]
   );
 
   const columns: Array<GridColDef<TRow>> = useMemo(
@@ -180,7 +190,7 @@ const FullTable = (): JSX.Element => {
       ...cats.map(
         (c): GridColDef<TRow> => ({
           field: String(c.id),
-          valueGetter: ({ row }) => row.tags[c.name],
+          valueGetter: ({ row }) => row.tagValues[c.name],
           headerName: c.name,
         })
       ),
@@ -207,12 +217,16 @@ const FullTable = (): JSX.Element => {
   const actions = useMemo(
     (): TAction[] => [
       {
-        f: () => navigate(TRoute.individual_blends),
+        f: () => {
+          const blend = menuRow?.tagValues[BLEND];
+          const tag = tags.find((t) => t.value === blend);
+          if (!isUndefined(tag)) navigate(`${INDIVIDUAL_BLENDS}/${tag.id}`);
+        },
         title: "Price history",
         icon: <Timeline />,
       },
     ],
-    [navigate]
+    [navigate, menuRow, tags]
   );
 
   return (

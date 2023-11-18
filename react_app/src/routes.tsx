@@ -20,6 +20,7 @@ const ResetPassword = lazy(() => import("./views/auth/resetPassword"));
 const Error = lazy(() => import("./views/error"));
 const FullTable = lazy(() => import("./views/fullTable"));
 const VerifyEmail = lazy(() => import("./views/account/verifyEmail"));
+const PriceHistory = lazy(() => import("./views/priceHistory"));
 
 const { none, user, admin } = TAuthLevel;
 
@@ -41,7 +42,13 @@ const ROUTES: Record<TRoute, TRouteDetails> = {
   [TRoute.individual_blends]: {
     name: "Price History",
     Icon: Timeline,
-    element: <></>,
+    element: <PriceHistory />,
+    level: none,
+  },
+  [TRoute.individual_blend]: {
+    name: "",
+    Icon: Timeline,
+    element: <PriceHistory />,
     level: none,
   },
   [TRoute.email_updates]: {

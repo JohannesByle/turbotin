@@ -1,6 +1,8 @@
 package services
 
 import (
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"turbotin/models"
@@ -18,9 +20,10 @@ import (
 
 type Public struct{}
 
-var prices = TobaccoPrices
+var NUMBER_REGEX = regexp.MustCompile(`(\d+.\d+)`)
 
 func (s *Public) TodaysTobaccos(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.ObsTobaccoList], error) {
+	var prices = TobaccoPrices
 
 	type Row struct {
 		TobaccoID int
@@ -178,4 +181,32 @@ func (s *Public) GetAllTagData(ctx context.Context, req *Request[pb.EmptyArgs]) 
 		Tags:     tags.Msg.Items,
 		Cats:     cats.Msg.Items}
 	return NewResponse(resp), nil
+}
+
+func (s *Public) GetTobaccoPrices(ctx context.Context, req *Request[pb.IntegerList]) (*Response[pb.TobaccoPrices], error) {
+
+	allPrices := []*models.TobaccoPrice{}
+
+	DB.Where("tobacco_id in ?", req.Msg.Items).Find(&allPrices)
+	if DB.Error != nil {
+		return InternalError[pb.TobaccoPrices]()
+	}
+	prices := make([]*pb.TobaccoPriceList, len(req.Msg.Items))
+	for i := range req.Msg.Items {
+		prices[i] = &pb.TobaccoPriceList{Items: []*pb.TobaccoPrice{}}
+	}
+	for _, row := range allPrices {
+		for i, id := range req.Msg.Items {
+			if id == uint32(row.TobaccoId) {
+				price, err := strconv.ParseFloat(NUMBER_REGEX.FindString(row.Price), 64)
+				if err != nil {
+					continue
+				}
+				prices[i].Items = append(prices[i].Items, &pb.TobaccoPrice{
+					Price: price,
+					Time:  timestamppb.New(row.Time)})
+			}
+		}
+	}
+	return NewResponse(&pb.TobaccoPrices{Items: prices}), nil
 }

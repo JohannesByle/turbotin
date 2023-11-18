@@ -56,6 +56,10 @@ message EmptyResponse {}
 
 message EmptyArgs {}
 
+message IntegerList {
+  repeated uint32 items = 1;
+}
+
 service Auth {
   rpc GetCurrentUser(EmptyArgs) returns (User) {}
 
@@ -116,6 +120,8 @@ service Public {
   rpc GetCategories(EmptyArgs) returns (CategoryList) {}
 
   rpc GetAllTagData(EmptyArgs) returns (AllTagData) {}
+
+  rpc GetTobaccoPrices(IntegerList) returns (TobaccoPrices) {}
 }
 
 message Tobacco {
@@ -148,6 +154,19 @@ message AllTagData {
   repeated TagToTag tag_links = 2;
   repeated Tag tags = 3;
   repeated Category cats = 4;
+}
+
+message TobaccoPrice {
+  double price = 1;
+  google.protobuf.Timestamp time = 2;
+}
+
+message TobaccoPriceList {
+  repeated TobaccoPrice items = 1;
+}
+
+message TobaccoPrices {
+  repeated TobaccoPriceList items = 1;
 }
 
 service Admin {

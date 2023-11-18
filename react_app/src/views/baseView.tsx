@@ -23,6 +23,8 @@ import Loading from "../util/components/loading";
 import { usePromisify } from "../util/promisify";
 import AuthDlg from "./auth/authDlg";
 import { isAuthenticated } from "./auth/authProvider";
+import { basePath } from "../util";
+import { isUndefined, toPairs } from "lodash";
 
 const Img = styled("img")``;
 
@@ -49,6 +51,8 @@ const BaseView = (): JSX.Element => {
     [isAdmin]
   );
 
+  const route = basePath(location.pathname);
+
   return (
     <Box
       sx={{
@@ -73,13 +77,12 @@ const BaseView = (): JSX.Element => {
             Turbotin
           </Typography>
           <Tabs
-            value={
-              (routes as string[]).includes(location.pathname) &&
-              location.pathname
-            }
-            onChange={(e, value: TRoute) =>
-              isAuthenticated(ROUTES[value].level, user) && navigate(value)
-            }
+            value={routes.map(basePath).includes(route) && route}
+            onChange={(e, v: string) => {
+              const route = toPairs(ROUTES).find(([k]) => basePath(k) === v);
+              if (!isUndefined(route) && isAuthenticated(route[1].level, user))
+                navigate(`/${v}`);
+            }}
             indicatorColor="secondary"
             textColor="inherit"
           >
@@ -89,7 +92,7 @@ const BaseView = (): JSX.Element => {
               return (
                 <Tab
                   key={route}
-                  value={route}
+                  value={basePath(route)}
                   label={name}
                   icon={<Icon />}
                   iconPosition="start"

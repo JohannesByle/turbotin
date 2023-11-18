@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Dictionary, groupBy, isUndefined } from "lodash";
+import { groupBy, isUndefined } from "lodash";
 import { useMemo } from "react";
 import { EMPTY_ARR } from "../consts";
 import {
@@ -16,7 +16,7 @@ import {
 } from "../protos/turbotin_pb";
 
 export const useTags = (): {
-  tobaccoTags: Map<number, Dictionary<string>>;
+  tobaccoTags: Map<number, Tag[]>;
   tags: Tag[];
   cats: Category[];
   links: TobaccoToTag[];
@@ -42,12 +42,12 @@ export const useTags = (): {
   const tagMap = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
   const catMap = useMemo(() => new Map(cats.map((c) => [c.id, c])), [cats]);
 
-  const tobaccoTags = useMemo((): Map<number, Dictionary<string>> => {
+  const tobaccoTags = useMemo((): Map<number, Tag[]> => {
     const groups = groupBy(tagLinks, (t) => t.parentTagId);
-    const result = new Map<number, Dictionary<string>>();
+    const result = new Map<number, Tag[]>();
     for (const link of links) {
-      const dict: Dictionary<string> = {};
-      result.set(link.tobaccoId, dict);
+      const arr = new Array<Tag>();
+      result.set(link.tobaccoId, arr);
       const tagIds = [
         link.tagId,
         ...(groups[link.tagId]?.map((l) => l.tagId) ?? []),
@@ -57,7 +57,7 @@ export const useTags = (): {
         if (isUndefined(tag)) continue;
         const cat = catMap.get(tag.categoryId);
         if (isUndefined(cat)) continue;
-        dict[cat.name] = tag.value;
+        arr.push(tag);
       }
     }
     return result;

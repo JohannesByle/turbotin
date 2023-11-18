@@ -12,6 +12,8 @@ export const ERROR_MSG_STR = "e19f4dcc-cdde-4c39-9b15-ca0d6eff4367";
 export const DOLLAR_REGEX = /\$([+-]?[0-9]{1,3}(?:,?[0-9]{3})*(?:\.[0-9]{2})?)/;
 export const APP_BAR_HEIGHT = "72px";
 export const JWT_KEY = "jwt";
+export const BLEND = "Blend";
+export const INDIVIDUAL_BLENDS = "/individual_blends";
 
 export enum TAuthLevel {
   none,
@@ -22,6 +24,7 @@ export enum TAuthLevel {
 export enum TRoute {
   full_table = "/full_table",
   individual_blends = "/individual_blends",
+  individual_blend = "/individual_blends/:tag_id",
   email_updates = "/email_updates",
   my_account = "/my_account",
   reset_password = "/reset_password",
