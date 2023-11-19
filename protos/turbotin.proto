@@ -159,6 +159,7 @@ message AllTagData {
 message TobaccoPrice {
   double price = 1;
   google.protobuf.Timestamp time = 2;
+  bool in_stock = 3;
 }
 
 message TobaccoPriceList {

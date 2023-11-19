@@ -22,6 +22,10 @@ type Public struct{}
 
 var NUMBER_REGEX = regexp.MustCompile(`(\d+.\d+)`)
 
+func inStock(str string) bool {
+	return strings.HasPrefix(strings.ToLower(str), "in stock")
+}
+
 func (s *Public) TodaysTobaccos(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.ObsTobaccoList], error) {
 	var prices = TobaccoPrices
 
@@ -81,7 +85,7 @@ func (s *Public) TodaysTobaccos(ctx context.Context, req *Request[pb.EmptyArgs])
 			Link:      row.Link,
 			PriceStr:  row.Price,
 			Time:      timestamppb.New(row.Time),
-			InStock:   strings.ToLower(row.Stock) == "in stock",
+			InStock:   inStock(row.Stock),
 		})
 	}
 
@@ -203,8 +207,9 @@ func (s *Public) GetTobaccoPrices(ctx context.Context, req *Request[pb.IntegerLi
 					continue
 				}
 				prices[i].Items = append(prices[i].Items, &pb.TobaccoPrice{
-					Price: price,
-					Time:  timestamppb.New(row.Time)})
+					Price:   price,
+					Time:    timestamppb.New(row.Time),
+					InStock: inStock(row.Stock)})
 			}
 		}
 	}

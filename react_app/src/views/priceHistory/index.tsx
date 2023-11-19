@@ -4,6 +4,7 @@ import {
   CategoryScale,
   Chart,
   ChartDataset,
+  Colors,
   Legend,
   LineElement,
   LinearScale,
@@ -42,6 +43,7 @@ Chart.register({
   Legend,
   TimeScale,
   TimeSeriesScale,
+  Colors,
 });
 
 const getOptionLabel = (tag: Tag): string => tag?.value ?? "";
@@ -104,6 +106,10 @@ const PriceHistory = (): JSX.Element => {
     l.items.map((i) => i.time?.toDate()?.getTime() ?? 0)
   );
 
+  const sortedData = data.items.map((l) =>
+    sortBy(l.items, (p) => p.time?.seconds)
+  );
+
   return (
     <Box
       sx={{
@@ -160,20 +166,36 @@ const PriceHistory = (): JSX.Element => {
           >
             <Line
               data={{
-                datasets: data.items.map(
-                  (l, i): ChartDataset<"line"> => ({
-                    data: sortBy(
-                      l.items.map(
-                        (i): Point => ({
-                          y: i.price,
-                          x: i.time?.toDate()?.getTime() ?? 0,
-                        })
-                      ),
-                      (p) => p.x
+                datasets: sortedData.map((items, i): ChartDataset<"line"> => {
+                  return {
+                    data: items.map(
+                      (p): Point => ({
+                        y: p.price,
+                        x: p.time?.toDate()?.getTime() ?? 0,
+                      })
                     ),
                     label: STORE_TO_NAME[tobaccos[i].store],
-                  })
-                ),
+                    pointBorderColor: (ctx) => {
+                      if (
+                        "element" in ctx &&
+                        ctx.element instanceof PointElement &&
+                        !isUndefined(ctx.element.options)
+                      ) {
+                        const opts = ctx.element.options;
+                        return opts.pointStyle === "circle"
+                          ? opts.backgroundColor
+                          : "red";
+                      }
+                    },
+                    pointRadius: 0,
+                    pointHitRadius: 10,
+                    segment: {
+                      borderDash: (ctx) => {
+                        if (!items[ctx.p0DataIndex].inStock) return [6, 6];
+                      },
+                    },
+                  };
+                }),
               }}
               options={{
                 scales: {
@@ -194,7 +216,15 @@ const PriceHistory = (): JSX.Element => {
                 plugins: {
                   tooltip: {
                     callbacks: {
-                      label: ({ parsed }) => formatUSD(parsed.y),
+                      label: ({ parsed, dataIndex, datasetIndex }) => {
+                        const price = sortedData[datasetIndex][dataIndex];
+                        const name =
+                          STORE_TO_NAME[tobaccos[datasetIndex].store];
+                        const result = `${formatUSD(parsed.y)} - ${name}`;
+                        return price.inStock
+                          ? result
+                          : result + " (out of stock)";
+                      },
                     },
                   },
                 },
