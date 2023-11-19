@@ -6,7 +6,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var DEBUG_EMAIL, EMAIL, EMAIL_PASSWORD, SCHEME, HOST string
+var DEBUG_EMAIL, EMAIL, EMAIL_PASSWORD, SCHEME, HOST, DB_STR string
 var IS_PRODUCTION bool
 
 func InitEnv() {
@@ -20,4 +20,5 @@ func InitEnv() {
 	SCHEME = os.Getenv("SCHEME")
 	HOST = os.Getenv("HOST")
 	IS_PRODUCTION = os.Getenv("MODE") == "PRODUCTION"
+	DB_STR = os.Getenv("DB_STR")
 }

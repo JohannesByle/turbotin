@@ -12,8 +12,6 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-const DB_STR = "gorm:vahiy@tcp(127.0.0.1:3306)/turbotin?charset=utf8mb4&parseTime=True&loc=Local"
-
 var DB *gorm.DB
 
 func InitGorm() {
@@ -43,6 +41,7 @@ func InitGorm() {
 		&models.Tag{},
 		&models.Category{},
 		&models.TagToTag{},
-		&models.TobaccoToTag{})
+		&models.TobaccoToTag{},
+		&models.Notification{})
 	log.Printf("gorm initialized")
 }

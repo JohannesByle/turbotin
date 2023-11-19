@@ -23,6 +23,14 @@ type User struct {
 	LastEmailTime sql.NullTime
 }
 
+type Notification struct {
+	gorm.Model
+	UserId        uint
+	TagId         uint
+	MaxPrice      sql.NullInt16
+	AllowedStores string `gorm:"type:varchar(250);"`
+}
+
 type Tobacco struct {
 	gorm.Model
 	Store  int32  `gorm:"type:varchar(100) not null;"`
