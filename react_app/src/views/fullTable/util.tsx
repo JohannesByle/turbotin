@@ -6,7 +6,7 @@ export const NUMBER_REGEX = /(\d+.\d+)/;
 
 export function price(t: TRow): number {
   const match = t.priceStr.match(NUMBER_REGEX)?.[0];
-  return isUndefined(match) ? NaN : parseInt(match);
+  return isUndefined(match) ? Infinity : parseInt(match);
 }
 
 export type TRow = PlainMessage<ObsTobacco> & {
