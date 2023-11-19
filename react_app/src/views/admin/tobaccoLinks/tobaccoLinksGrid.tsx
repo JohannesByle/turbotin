@@ -1,8 +1,10 @@
-import { useTheme } from "@mui/material";
 import { DataGrid, GridColDef, GridFilterModel } from "@mui/x-data-grid";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { fromPairs, groupBy, isUndefined, sortBy, toPairs } from "lodash";
 import React, { useMemo } from "react";
+import { PALETTE } from "../../../consts";
+import * as admin from "../../../protos/turbotin-Admin_connectquery";
+import { getTobaccoToTags } from "../../../protos/turbotin-Public_connectquery";
 import {
   Category,
   Tag,
@@ -12,8 +14,6 @@ import {
 } from "../../../protos/turbotin_pb";
 import TagEditCell from "../editCell";
 import { NULL_CAT, TRow, getCats, getValidCats } from "./util";
-import * as admin from "../../../protos/turbotin-Admin_connectquery";
-import { getTobaccoToTags } from "../../../protos/turbotin-Public_connectquery";
 
 type TProps = {
   tags: Tag[];
@@ -61,8 +61,6 @@ const TobaccoLinksGrid = (props: TProps): JSX.Element => {
 
   const children = getCats(catMap, tagMap, links);
 
-  const { palette } = useTheme();
-
   const rows = useMemo(
     () => tagsToRows(tobaccos, catMap, links, tagMap),
     [catMap, links, tagMap, tobaccos]
@@ -103,7 +101,7 @@ const TobaccoLinksGrid = (props: TProps): JSX.Element => {
       columns={columns}
       getRowId={getRowId}
       loading={queryClient.isFetching() > 0 || queryClient.isMutating() > 0}
-      sx={{ backgroundColor: palette.background.paper }}
+      sx={{ backgroundColor: PALETTE.background.paper }}
       filterModel={filterModel}
       initialState={{
         columns: {

@@ -1,8 +1,9 @@
+import { useMediaQuery } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { Dictionary, isString, isUndefined, last, values } from "lodash";
 import { Dispatch, SetStateAction, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { TRoute } from "../consts";
+import { THEME, TRoute } from "../consts";
 import { getCurrentUser } from "../protos/turbotin-Auth_connectquery";
 import { User } from "../protos/turbotin_pb";
 
@@ -34,3 +35,12 @@ export const arrayOf = <T extends string | number>(t: Dictionary<T>): T[] => {
 };
 
 export const basePath = (str: string): string => String(str.split("/")[1]);
+
+export const useScreenSize = (): { isMobile: boolean; isDesktop: boolean } => {
+  const { breakpoints } = THEME;
+
+  const isMobile = useMediaQuery(breakpoints.down("md"));
+  const isDesktop = useMediaQuery(breakpoints.up("xl"));
+
+  return { isMobile, isDesktop };
+};

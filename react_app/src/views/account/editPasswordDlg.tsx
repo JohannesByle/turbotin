@@ -4,10 +4,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  useTheme,
 } from "@mui/material";
 import { useMutation } from "@tanstack/react-query";
 import React, { useCallback, useState } from "react";
+import { PALETTE } from "../../consts";
 import * as auth from "../../protos/turbotin-Auth_connectquery";
 import { useUser } from "../../util";
 import { TDlgProps } from "../../util/promisify";
@@ -19,7 +19,6 @@ const EditPasswordDlg = (props: TDlgProps): JSX.Element => {
   const [oldPassword, setOldPassword_] = useState<string>("");
   const [newPassword, setNewPassword] = useState<string>("");
   const [error, setError] = useState<string | undefined>(undefined);
-  const { palette } = useTheme();
 
   const { mutateAsync: changePassword, isLoading } = useMutation(
     auth.changePassword.useMutation()
@@ -33,7 +32,7 @@ const EditPasswordDlg = (props: TDlgProps): JSX.Element => {
   if (user === null) return <></>;
   return (
     <Dialog open={open} onClose={onCancel}>
-      <DialogTitle sx={{ color: palette.text.secondary }}>
+      <DialogTitle sx={{ color: PALETTE.text.secondary }}>
         Change password
       </DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>

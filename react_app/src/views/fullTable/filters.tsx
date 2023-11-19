@@ -8,7 +8,6 @@ import {
   FormLabel,
   Slider,
   TextField,
-  useTheme,
 } from "@mui/material";
 import {
   groupBy,
@@ -20,7 +19,7 @@ import {
   uniq,
 } from "lodash";
 import React, { useMemo } from "react";
-import { NAME_TO_STORE, STORE_TO_NAME } from "../../consts";
+import { NAME_TO_STORE, PALETTE, STORE_TO_NAME } from "../../consts";
 import { Category, ObsTobacco, Tag } from "../../protos/turbotin_pb";
 import { TSetState, formatUSD } from "../../util";
 import { TFilter } from "./filterUtil";
@@ -46,13 +45,11 @@ const Filters = (props: TProps): JSX.Element => {
     [rows]
   );
 
-  const { palette } = useTheme();
-
   return (
     <FormControl sx={{ width: "300px" }}>
       <FormLabel sx={{ mb: 1 }}>Filters</FormLabel>
       <TextField
-        sx={{ backgroundColor: palette.background.paper }}
+        sx={{ backgroundColor: PALETTE.background.paper }}
         label={"Name"}
         value={filter.item ?? ""}
         onChange={(e) => {
@@ -114,7 +111,7 @@ const Filters = (props: TProps): JSX.Element => {
         renderInput={(params) => (
           <TextField
             {...params}
-            sx={{ backgroundColor: palette.background.paper, width: "100%" }}
+            sx={{ backgroundColor: PALETTE.background.paper, width: "100%" }}
             label="Store"
           />
         )}
@@ -139,12 +136,12 @@ const Filters = (props: TProps): JSX.Element => {
             onChange={(_, v) =>
               setFilter((prev) => merge({}, prev, { tags: { [cat.name]: v } }))
             }
-            sx={{ backgroundColor: palette.background.paper, mt: 1 }}
+            sx={{ backgroundColor: PALETTE.background.paper, mt: 1 }}
             renderInput={(params) => (
               <TextField
                 {...params}
                 sx={{
-                  backgroundColor: palette.background.paper,
+                  backgroundColor: PALETTE.background.paper,
                   width: "100%",
                 }}
                 label={cat.name}

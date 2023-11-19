@@ -17,13 +17,12 @@ import {
   Tabs,
   Zoom,
   ZoomProps,
-  useTheme,
 } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { isString } from "lodash";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
-import { TRoute } from "../../consts";
+import { THEME, TRoute } from "../../consts";
 import * as auth from "../../protos/turbotin-Auth_connectquery";
 import { AuthArgs } from "../../protos/turbotin_pb";
 import { TDlgProps } from "../../util/promisify";
@@ -31,6 +30,11 @@ import EmailEdit, { isValidEmail } from "./emailEdit";
 import PasswordEdit, { isValidPassword } from "./passwordEdit";
 
 export const DLG_HEIGHT = "210px";
+
+const TRANSITION_DURATION = {
+  enter: THEME.transitions.duration.enteringScreen,
+  exit: THEME.transitions.duration.leavingScreen,
+};
 
 const AuthDlg = (props: TDlgProps): JSX.Element => {
   const { open, onSubmit, onCancel } = props;
@@ -56,27 +60,19 @@ const AuthDlg = (props: TDlgProps): JSX.Element => {
     setEmailError(null);
   }, []);
 
-  const theme = useTheme();
-
-  const transitionDuration = useMemo(
-    () => ({
-      enter: theme.transitions.duration.enteringScreen,
-      exit: theme.transitions.duration.leavingScreen,
-    }),
-    [theme]
-  );
-
   const getZoomProps = useCallback(
     (tab: typeof activeTab): Partial<ZoomProps> => ({
       in: activeTab === tab,
       unmountOnExit: true,
-      timeout: transitionDuration,
+      timeout: TRANSITION_DURATION,
       style: {
-        transitionDelay: `${tab === activeTab ? transitionDuration.exit : 0}ms`,
+        transitionDelay: `${
+          tab === activeTab ? TRANSITION_DURATION.exit : 0
+        }ms`,
         display: tab === activeTab ? "inline-block" : "none",
       },
     }),
-    [transitionDuration, activeTab]
+    [activeTab]
   );
 
   const inputIsValid = isValidEmail(email) && isValidPassword(password);

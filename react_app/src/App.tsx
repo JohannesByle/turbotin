@@ -1,17 +1,16 @@
 import CssBaseline from "@mui/material/CssBaseline";
-import { cyan, grey, yellow } from "@mui/material/colors";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { toPairs } from "lodash";
 import React from "react";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import { MS_PER_MINUTE } from "./consts";
+import { MS_PER_MINUTE, THEME } from "./consts";
 import ROUTES from "./routes";
 import { FlashesProvider } from "./util/flash";
-import BaseView from "./views/baseView";
-import { toPairs } from "lodash";
 import AuthProvider from "./views/auth/authProvider";
+import BaseView from "./views/baseView";
 
 dayjs.extend(relativeTime);
 
@@ -36,18 +35,9 @@ const client = new QueryClient({
   },
 });
 
-const theme = createTheme({
-  palette: {
-    primary: { main: cyan[800], contrastText: "white" },
-    secondary: { main: yellow[300] },
-    info: { main: grey[600] },
-    background: { default: grey[100] },
-  },
-});
-
 function App(): JSX.Element {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={THEME}>
       <QueryClientProvider client={client}>
         <FlashesProvider>
           <CssBaseline />

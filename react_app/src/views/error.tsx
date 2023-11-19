@@ -1,12 +1,11 @@
 import { ReportGmailerrorred } from "@mui/icons-material";
-import { Box, Typography, useTheme } from "@mui/material";
-import React from "react";
+import { Box, Typography } from "@mui/material";
 import cookie from "cookie";
-import { ERROR_MSG_STR } from "../consts";
+import React from "react";
+import { ERROR_MSG_STR, PALETTE } from "../consts";
 
 const Error = (): JSX.Element => {
   const { [ERROR_MSG_STR]: errorMsg } = cookie.parse(document.cookie);
-  const { palette } = useTheme();
 
   return (
     <Box
@@ -19,9 +18,9 @@ const Error = (): JSX.Element => {
       }}
     >
       <ReportGmailerrorred
-        sx={{ height: "10vh", width: "10vh", color: palette.text.secondary }}
+        sx={{ height: "10vh", width: "10vh", color: PALETTE.text.secondary }}
       />
-      <Typography variant={"h4"} color={palette.text.secondary}>
+      <Typography variant={"h4"} color={PALETTE.text.secondary}>
         {errorMsg}
       </Typography>
     </Box>

@@ -11,14 +11,13 @@ import {
   ListItem,
   ListItemAvatar,
   Tooltip,
-  useTheme,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import cookie from "cookie";
 import { isUndefined } from "lodash";
 import React from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { JWT_KEY, TRoute } from "../../consts";
+import { JWT_KEY, PALETTE, TRoute } from "../../consts";
 import * as auth from "../../protos/turbotin-Auth_connectquery";
 import ConfirmationDlg from "../../util/components/confirmationDlg";
 import { usePromisify } from "../../util/promisify";
@@ -33,7 +32,6 @@ const Account = (): JSX.Element => {
   const [passwordDlg, showPasswordDlg] = usePromisify(EditPasswordDlg);
   const [confirmDeleteDlg, showConfirmDeleteDlg] =
     usePromisify(ConfirmationDlg);
-  const { palette } = useTheme();
   const navigate = useNavigate();
 
   const client = useQueryClient();
@@ -57,7 +55,7 @@ const Account = (): JSX.Element => {
     ],
     [
       <IconButton key={0} onClick={() => void showPasswordDlg({})}>
-        <Edit sx={{ color: palette.primary.contrastText }} />
+        <Edit sx={{ color: PALETTE.primary.contrastText }} />
       </IconButton>,
       <>Password</>,
     ],
@@ -75,7 +73,7 @@ const Account = (): JSX.Element => {
           navigate(TRoute.full_table);
         }}
       >
-        <Logout sx={{ color: palette.primary.contrastText }} />
+        <Logout sx={{ color: PALETTE.primary.contrastText }} />
       </IconButton>,
       <>Logout</>,
     ],
@@ -98,7 +96,7 @@ const Account = (): JSX.Element => {
         {isDeleting ? (
           <CircularProgress />
         ) : (
-          <Delete sx={{ color: palette.primary.contrastText }} />
+          <Delete sx={{ color: PALETTE.primary.contrastText }} />
         )}
       </IconButton>,
       <>Delete account</>,

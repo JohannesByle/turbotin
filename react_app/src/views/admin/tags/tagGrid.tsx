@@ -1,16 +1,16 @@
-import { useTheme } from "@mui/material";
 import { DataGrid, GridColDef, GridFilterModel } from "@mui/x-data-grid";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { fromPairs, groupBy, isUndefined, sortBy, toPairs } from "lodash";
 import React, { useMemo } from "react";
+import { PALETTE } from "../../../consts";
 import * as admin from "../../../protos/turbotin-Admin_connectquery";
-import { Category, Tag, TagToTag } from "../../../protos/turbotin_pb";
-import TagEditCell from "../editCell";
-import { NULL_CAT, TRow, getChildren, getValidCats } from "./util";
 import {
   getTagToTags,
   getTags,
 } from "../../../protos/turbotin-Public_connectquery";
+import { Category, Tag, TagToTag } from "../../../protos/turbotin_pb";
+import TagEditCell from "../editCell";
+import { NULL_CAT, TRow, getChildren, getValidCats } from "./util";
 
 type TProps = {
   cat: Category;
@@ -59,8 +59,6 @@ const TagGrid = (props: TProps): JSX.Element => {
 
   const children = getChildren(cat, catMap, tagMap, links);
 
-  const { palette } = useTheme();
-
   const rows = useMemo(
     () => tagsToRows(cat, catMap, links, tagMap),
     [cat, catMap, links, tagMap]
@@ -103,7 +101,7 @@ const TagGrid = (props: TProps): JSX.Element => {
       rows={rows}
       columns={columns}
       loading={queryClient.isFetching() > 0 || queryClient.isMutating() > 0}
-      sx={{ backgroundColor: palette.background.paper }}
+      sx={{ backgroundColor: PALETTE.background.paper }}
       filterModel={filterModel}
       initialState={{
         columns: {

@@ -9,22 +9,21 @@ import {
   Toolbar,
   Tooltip,
   styled,
-  useTheme,
 } from "@mui/material";
 import Typography from "@mui/material/Typography";
 import useScrollTrigger from "@mui/material/useScrollTrigger";
 import { useQuery } from "@tanstack/react-query";
+import { isUndefined, toPairs } from "lodash";
 import React, { Suspense, useMemo } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LOGO_URL, TAB_OPACITY, TRoute } from "../consts";
+import { LOGO_URL, PALETTE, TAB_OPACITY, TRoute } from "../consts";
 import * as auth from "../protos/turbotin-Auth_connectquery";
 import ROUTES from "../routes";
+import { basePath } from "../util";
 import Loading from "../util/components/loading";
 import { usePromisify } from "../util/promisify";
 import AuthDlg from "./auth/authDlg";
 import { isAuthenticated } from "./auth/authProvider";
-import { basePath } from "../util";
-import { isUndefined, toPairs } from "lodash";
 
 const Img = styled("img")``;
 
@@ -43,8 +42,7 @@ const BaseView = (): JSX.Element => {
 
   const trigger = useScrollTrigger();
 
-  const { palette } = useTheme();
-  const buttonColor = palette.primary.contrastText;
+  const buttonColor = PALETTE.primary.contrastText;
 
   const routes = useMemo(
     () => [...NAV_ROUTES, ...(isAdmin ? [TRoute.admin] : [])],

@@ -10,8 +10,6 @@ import {
   FormLabel,
   IconButton,
   Tooltip,
-  useMediaQuery,
-  useTheme,
 } from "@mui/material";
 import {
   DataGrid,
@@ -30,10 +28,12 @@ import {
   INDIVIDUAL_BLENDS,
   KebapMenu,
   MS_PER_SECOND,
+  PALETTE,
   STORE_TO_NAME,
 } from "../../consts";
 import { todaysTobaccos } from "../../protos/turbotin-Public_connectquery";
 import { ObsTobacco } from "../../protos/turbotin_pb";
+import { useScreenSize } from "../../util";
 import { ActionMenu, TAction } from "../../util/actions";
 import BoldSubStr from "../../util/components/boldSubStr";
 import { useTags } from "../../util/tags";
@@ -95,9 +95,8 @@ const FullTable = (): JSX.Element => {
     tags,
   } = useTags();
 
-  const { breakpoints } = useTheme();
-  const isMobile = useMediaQuery(breakpoints.down("md"));
-  const isDesktop = useMediaQuery(breakpoints.up("xl"));
+  const { isDesktop, isMobile } = useScreenSize();
+
   const visibiltyModel = useMemo(
     (): GridColumnVisibilityModel => ({
       ...(isMobile ? MOBILE_COLS : DESKTOP_COLS),
@@ -138,10 +137,15 @@ const FullTable = (): JSX.Element => {
       },
       {
         field: "item" satisfies keyof ObsTobacco,
-        flex: 3,
+        flex: 2,
         headerName: "Name",
         renderCell: ({ row: { item, link } }) => (
-          <a href={link} target={"_blank"} rel={"noreferrer"}>
+          <a
+            href={link}
+            target={"_blank"}
+            rel={"noreferrer"}
+            style={{ textOverflow: "ellipsis", overflow: "hidden" }}
+          >
             {!isString(filter.item) ||
             isEmpty(filter.item) ||
             !isString(item) ? (
@@ -165,13 +169,21 @@ const FullTable = (): JSX.Element => {
       },
       {
         field: "time" satisfies keyof ObsTobacco,
-        flex: 1,
+        flex: 0.5,
         headerName: "Last updated",
         valueGetter: ({ row: { time } }) =>
           dayjs((Number(time?.seconds) ?? 0) * MS_PER_SECOND),
         valueFormatter: ({ value }) => (value as Dayjs).fromNow(),
         hideable: false,
       },
+      ...cats.map(
+        (c): GridColDef<TRow> => ({
+          field: String(c.id),
+          valueGetter: ({ row }) => row.tagValues[c.name],
+          headerName: c.name,
+          flex: 2,
+        })
+      ),
       {
         field: "inStock" satisfies keyof ObsTobacco,
         width: 40,
@@ -186,14 +198,6 @@ const FullTable = (): JSX.Element => {
             </Tooltip>
           ),
       },
-
-      ...cats.map(
-        (c): GridColDef<TRow> => ({
-          field: String(c.id),
-          valueGetter: ({ row }) => row.tagValues[c.name],
-          headerName: c.name,
-        })
-      ),
       {
         field: "kebap",
         width: 40,
@@ -296,7 +300,12 @@ const FullTable = (): JSX.Element => {
       )}
       <Box
         maxWidth={"lg"}
-        sx={{ width: "100%", height: "100%", background: "white" }}
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          height: "100%",
+          background: PALETTE.background.paper,
+        }}
       >
         <DataGrid<TRow>
           columns={columns}

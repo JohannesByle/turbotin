@@ -1,10 +1,11 @@
 import { Category, Link, Tag } from "@mui/icons-material";
-import { Box, Divider, Tab, Tabs, useTheme } from "@mui/material";
+import { Box, Divider, Tab, Tabs } from "@mui/material";
 import React, { useState } from "react";
+import { PALETTE } from "../../consts";
 import { arrayOf } from "../../util";
+import Categories from "./categories";
 import { TTab } from "./consts";
 import Tags from "./tags";
-import Categories from "./categories";
 import TobaccoLinks from "./tobaccoLinks";
 
 const { tags, categories, tobaccoLinks } = TTab;
@@ -24,8 +25,6 @@ const ICONS: Record<TTab, JSX.Element> = {
 const Admin = (): JSX.Element => {
   const [tab, setTab] = useState<TTab>(tags);
 
-  const { palette } = useTheme();
-
   return (
     <Box
       sx={{
@@ -39,7 +38,7 @@ const Admin = (): JSX.Element => {
         value={tab}
         onChange={(_, v) => setTab(v as TTab)}
         orientation="vertical"
-        sx={{ background: palette.background.paper }}
+        sx={{ background: PALETTE.background.paper }}
       >
         {arrayOf(TTab).map((t) => (
           <Tab key={t} value={t} label={t} icon={ICONS[t]} />

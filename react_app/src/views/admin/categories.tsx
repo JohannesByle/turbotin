@@ -1,10 +1,10 @@
 import { Add } from "@mui/icons-material";
-import { Box, IconButton, TextField, useTheme } from "@mui/material";
+import { Box, IconButton, TextField } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isUndefined } from "lodash";
 import React, { useCallback, useRef } from "react";
-import { EMPTY_ARR, voidFn } from "../../consts";
+import { EMPTY_ARR, PALETTE, voidFn } from "../../consts";
 import * as admin from "../../protos/turbotin-Admin_connectquery";
 import { getCategories } from "../../protos/turbotin-Public_connectquery";
 import { Category, CategoryList } from "../../protos/turbotin_pb";
@@ -27,8 +27,6 @@ const Categories = (): JSX.Element => {
     admin.setCategories.useMutation()
   );
   const queryClient = useQueryClient();
-
-  const { palette } = useTheme();
 
   const newCatRef = useRef<HTMLInputElement>();
 
@@ -61,7 +59,7 @@ const Categories = (): JSX.Element => {
         <TextField
           inputRef={newCatRef}
           label="Add category"
-          sx={{ backgroundColor: palette.background.paper, ml: "auto" }}
+          sx={{ backgroundColor: PALETTE.background.paper, ml: "auto" }}
           onKeyDown={(e) => {
             if (e.key === "Enter") void addCat();
           }}
@@ -75,7 +73,7 @@ const Categories = (): JSX.Element => {
           rows={categories}
           loading={queryClient.isFetching() > 0 || queryClient.isMutating() > 0}
           columns={COLUMNS}
-          sx={{ backgroundColor: palette.background.paper }}
+          sx={{ backgroundColor: PALETTE.background.paper }}
           processRowUpdate={async (newRow) => {
             await setCats(new CategoryList({ items: [newRow] })).catch(voidFn);
             await queryClient.invalidateQueries({

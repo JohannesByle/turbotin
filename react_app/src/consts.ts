@@ -1,5 +1,7 @@
 import { fromPairs, toPairs } from "lodash";
 import { Store } from "./protos/turbotin_pb";
+import { createTheme } from "@mui/material";
+import { cyan, grey, yellow } from "@mui/material/colors";
 
 export const NODE_ENV = process.env.NODE_ENV ?? "production";
 export const IS_PROD = NODE_ENV === "production";
@@ -13,7 +15,18 @@ export const DOLLAR_REGEX = /\$([+-]?[0-9]{1,3}(?:,?[0-9]{3})*(?:\.[0-9]{2})?)/;
 export const APP_BAR_HEIGHT = "72px";
 export const JWT_KEY = "jwt";
 export const BLEND = "Blend";
+export const BRAND = "Brand";
 export const INDIVIDUAL_BLENDS = "/individual_blends";
+
+export const THEME = createTheme({
+  palette: {
+    primary: { main: cyan[800], contrastText: "white" },
+    secondary: { main: yellow[300] },
+    info: { main: grey[600] },
+    background: { default: grey[100] },
+  },
+});
+export const PALETTE = THEME.palette;
 
 export enum TAuthLevel {
   none,

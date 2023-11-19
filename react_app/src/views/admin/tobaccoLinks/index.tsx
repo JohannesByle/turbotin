@@ -6,12 +6,11 @@ import {
   MenuItem,
   Select,
   TextField,
-  useTheme,
 } from "@mui/material";
 import { GridFilterModel } from "@mui/x-data-grid";
 import { useQuery } from "@tanstack/react-query";
 import React, { useMemo, useState } from "react";
-import { EMPTY_ARR } from "../../../consts";
+import { EMPTY_ARR, PALETTE } from "../../../consts";
 import {
   getCategories,
   getTagToTags,
@@ -44,8 +43,6 @@ const TobaccoLinks = (): JSX.Element => {
   const tagMap = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
   const catMap = useMemo(() => new Map(cats.map((c) => [c.id, c])), [cats]);
 
-  const { palette } = useTheme();
-
   const children = getCats(catMap, tagMap, links);
 
   return (
@@ -69,7 +66,7 @@ const TobaccoLinks = (): JSX.Element => {
               setCol(e.target.value);
               setFilterModel({ items: [] });
             }}
-            sx={{ backgroundColor: palette.background.paper }}
+            sx={{ backgroundColor: PALETTE.background.paper }}
           >
             <MenuItem value={NAME}>{NAME}</MenuItem>
             {children.map((c) => (
@@ -81,7 +78,7 @@ const TobaccoLinks = (): JSX.Element => {
         </FormControl>
         <TextField
           label="Filter"
-          sx={{ backgroundColor: palette.background.paper }}
+          sx={{ backgroundColor: PALETTE.background.paper }}
           value={String(filterModel?.items?.[0]?.value ?? "")}
           onChange={(e) =>
             setFilterModel({
@@ -98,7 +95,7 @@ const TobaccoLinks = (): JSX.Element => {
             })
           }
           InputProps={{
-            endAdornment: <FilterAlt sx={{ color: palette.text.disabled }} />,
+            endAdornment: <FilterAlt sx={{ color: PALETTE.text.disabled }} />,
           }}
         />
       </Box>

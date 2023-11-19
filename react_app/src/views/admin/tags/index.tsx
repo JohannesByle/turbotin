@@ -10,13 +10,12 @@ import {
   Tab,
   Tabs,
   TextField,
-  useTheme,
 } from "@mui/material";
 import { GridFilterModel } from "@mui/x-data-grid";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { first, isString, isUndefined } from "lodash";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { EMPTY_ARR } from "../../../consts";
+import { EMPTY_ARR, PALETTE } from "../../../consts";
 import * as admin from "../../../protos/turbotin-Admin_connectquery";
 import {
   getCategories,
@@ -54,8 +53,6 @@ const Tags = (): JSX.Element => {
 
   const cat = cats.find((c) => c.id === cat_) ?? first(cats) ?? NULL_CAT;
 
-  const { palette } = useTheme();
-
   const children = getChildren(cat, catMap, tagMap, links);
 
   const col =
@@ -92,7 +89,7 @@ const Tags = (): JSX.Element => {
           setCat(v);
           setFilterModel({ items: [] });
         }}
-        sx={{ backgroundColor: palette.background.paper }}
+        sx={{ backgroundColor: PALETTE.background.paper }}
       >
         {cats.map((c) => (
           <Tab key={c.id} value={c.id} label={c.name} />
@@ -109,7 +106,7 @@ const Tags = (): JSX.Element => {
               setCol(e.target.value);
               setFilterModel({ items: [] });
             }}
-            sx={{ backgroundColor: palette.background.paper }}
+            sx={{ backgroundColor: PALETTE.background.paper }}
           >
             {[cat, ...children].map((c) => (
               <MenuItem key={c.id} value={c.name}>
@@ -120,7 +117,7 @@ const Tags = (): JSX.Element => {
         </FormControl>
         <TextField
           label="Filter"
-          sx={{ backgroundColor: palette.background.paper }}
+          sx={{ backgroundColor: PALETTE.background.paper }}
           value={String(filterModel?.items?.[0]?.value ?? "")}
           onChange={(e) =>
             setFilterModel({
@@ -134,13 +131,13 @@ const Tags = (): JSX.Element => {
             })
           }
           InputProps={{
-            endAdornment: <FilterAlt sx={{ color: palette.text.disabled }} />,
+            endAdornment: <FilterAlt sx={{ color: PALETTE.text.disabled }} />,
           }}
         />
         <TextField
           inputRef={newTagRef}
           label={`Add ${cat.name}`}
-          sx={{ backgroundColor: palette.background.paper, ml: "auto" }}
+          sx={{ backgroundColor: PALETTE.background.paper, ml: "auto" }}
           onKeyDown={(e) => {
             if (e.key === "Enter") void addTag();
           }}
