@@ -99,7 +99,7 @@ func PortCategories() {
 	defer f.Close()
 
 	blendMap := map[string]map[string]bool{}
-	tobaccoBlendMap := map[string]string{}
+	tobaccoBlendMap := map[string][]string{}
 
 	r := csv.NewReader(f)
 	r.Read()
@@ -115,7 +115,11 @@ func PortCategories() {
 		brand := strings.TrimSpace(record[2])
 		blend := strings.TrimSpace(record[3])
 
-		tobaccoBlendMap[blend] = tobacco
+		tobaccoBlends, ok := tobaccoBlendMap[blend]
+		if !ok {
+			tobaccoBlends = []string{}
+		}
+		tobaccoBlendMap[blend] = append(tobaccoBlends, tobacco)
 
 		blends, ok := blendMap[brand]
 		if !ok {
@@ -182,18 +186,20 @@ func PortCategories() {
 	}
 	tobaccoToTags := []*models.TobaccoToTag{}
 	for _, blend := range blends {
-		name, ok := tobaccoBlendMap[blend.Value]
-		if !ok {
-			continue
+		names, ok := tobaccoBlendMap[blend.Value]
+		for _, name := range names {
+			if !ok {
+				continue
+			}
+			tobacco, ok := tobaccoMap[name]
+			if !ok {
+				continue
+			}
+			tobaccoToTags = append(tobaccoToTags, &models.TobaccoToTag{
+				TobaccoId: tobacco.ID,
+				TagId:     blend.ID,
+			})
 		}
-		tobacco, ok := tobaccoMap[name]
-		if !ok {
-			continue
-		}
-		tobaccoToTags = append(tobaccoToTags, &models.TobaccoToTag{
-			TobaccoId: tobacco.ID,
-			TagId:     blend.ID,
-		})
 
 	}
 	DB.CreateInBatches(tobaccoToTags, 500)
