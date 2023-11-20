@@ -170,6 +170,22 @@ message TobaccoPrices {
   repeated TobaccoPriceList items = 1;
 }
 
+service Notifications {
+  rpc GetNotifications(EmptyArgs) returns (NotificationList) {}
+  rpc SetNotifications(NotificationList) returns (EmptyResponse) {}
+}
+
+message Notification {
+  uint32 id = 1;
+  uint32 tag_id = 2;
+  uint32 max_price = 3;
+  string allowed_stores = 4;
+}
+
+message NotificationList {
+  repeated Notification items = 1;
+}
+
 service Admin {
   rpc SetTobaccoToTags(TobaccoToTagList) returns (EmptyArgs) {}
   rpc SetTagToTags(TagToTagList) returns (EmptyArgs) {}

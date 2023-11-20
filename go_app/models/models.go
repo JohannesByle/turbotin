@@ -25,8 +25,8 @@ type User struct {
 
 type Notification struct {
 	gorm.Model
-	UserId        uint
-	TagId         uint
+	UserId        uint `gorm:"index;uniqueIndex:tag_user"`
+	TagId         uint `gorm:"index;uniqueIndex:tag_user"`
 	MaxPrice      sql.NullInt16
 	AllowedStores string `gorm:"type:varchar(250);"`
 }

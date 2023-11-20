@@ -1,4 +1,4 @@
-import { Autocomplete, Box, TextField } from "@mui/material";
+import { Box } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import {
   CategoryScale,
@@ -16,21 +16,15 @@ import {
   Tooltip,
 } from "chart.js";
 import "chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm";
-import { groupBy, isNull, isUndefined, max, min, sortBy } from "lodash";
+import { isNull, isUndefined, max, min, sortBy } from "lodash";
 import React, { useMemo } from "react";
 import { Line } from "react-chartjs-2";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  BLEND,
-  BRAND,
-  INDIVIDUAL_BLENDS,
-  PALETTE,
-  STORE_TO_NAME,
-} from "../../consts";
+import { INDIVIDUAL_BLENDS, PALETTE, STORE_TO_NAME } from "../../consts";
 import { getTobaccoPrices } from "../../protos/turbotin-Public_connectquery";
-import { Tag, Tobacco, TobaccoPrices } from "../../protos/turbotin_pb";
+import { Tobacco, TobaccoPrices } from "../../protos/turbotin_pb";
 import { formatUSD } from "../../util";
-import LoadingIcon from "../../util/components/loadingIcon";
+import BlendSelect from "../../util/components/blendSelect";
 import { useTags } from "../../util/tags";
 
 Chart.register({
@@ -46,20 +40,9 @@ Chart.register({
   Colors,
 });
 
-const getOptionLabel = (tag: Tag): string => tag?.value ?? "";
-
 const PriceHistory = (): JSX.Element => {
   const { tag_id: tag_id_ } = useParams();
-  const {
-    tobaccos: all_tobaccos,
-    tobaccoTags,
-    tagMap,
-    tags,
-    tagLinks,
-    cats,
-    isFetching,
-    links,
-  } = useTags();
+  const { tobaccos: all_tobaccos, tobaccoTags, tagMap, isFetching } = useTags();
 
   const navigate = useNavigate();
 
@@ -77,28 +60,6 @@ const PriceHistory = (): JSX.Element => {
   const { data = new TobaccoPrices(), isFetching: isFetchingPrices } = useQuery(
     getTobaccoPrices.useQuery({ items: tobaccos.map((t) => t.id) })
   );
-
-  const blend = cats.find((c) => c.name === BLEND);
-
-  const getBrand = useMemo(() => {
-    const groups = groupBy(tagLinks, (t) => t.parentTagId);
-    const brand = cats.find((c) => c.name === BRAND);
-    if (isUndefined(brand)) return () => "";
-    return (tag: Tag): string => {
-      const link = groups[tag.id]?.find(
-        (l) => tagMap.get(l.tagId)?.categoryId === brand?.id
-      );
-      return tagMap.get(link?.tagId ?? NaN)?.value ?? "";
-    };
-  }, [cats, tagLinks, tagMap]);
-
-  const blends = useMemo(() => {
-    const linkedTags = new Set(links.map((l) => l.tagId));
-    return sortBy(
-      tags.filter((t) => t.categoryId === blend?.id && linkedTags.has(t.id)),
-      [getBrand, (t) => t.value]
-    );
-  }, [tags, blend, getBrand, links]);
 
   const tag = tagMap.get(tag_id);
 
@@ -131,28 +92,13 @@ const PriceHistory = (): JSX.Element => {
           flexDirection: "column",
         }}
       >
-        <Autocomplete
-          value={(tag ?? null) as Tag}
-          options={blends}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              sx={{ backgroundColor: PALETTE.background.paper }}
-              label="Blend"
-              {...((isFetching || isFetchingPrices) && {
-                InputProps: { endAdornment: <LoadingIcon /> },
-              })}
-            />
-          )}
-          getOptionLabel={getOptionLabel}
-          groupBy={getBrand}
-          sx={{ width: 300, m: 1 }}
-          onChange={(_, tag) =>
-            !isNull(tag) && navigate(`${INDIVIDUAL_BLENDS}/${tag.id}`)
-          }
-          disableClearable
+        <BlendSelect
+          tag={tag}
+          setTag={(tag) => {
+            !isNull(tag) && navigate(`${INDIVIDUAL_BLENDS}/${tag.id}`);
+          }}
+          isLoading={isFetchingPrices}
         />
-
         {!isFetching && !isFetchingPrices && !isUndefined(tag) && (
           <Box
             sx={{

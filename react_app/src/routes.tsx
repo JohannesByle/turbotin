@@ -5,10 +5,10 @@ import {
   Error as ErrorIcon,
   Home,
   ManageAccounts,
-  Notifications,
   Password,
   SvgIconComponent,
   Timeline,
+  Notifications as NotificationsIcon,
 } from "@mui/icons-material";
 import React, { lazy } from "react";
 import { TAuthLevel, TRoute } from "./consts";
@@ -21,6 +21,7 @@ const Error = lazy(() => import("./views/error"));
 const FullTable = lazy(() => import("./views/fullTable"));
 const VerifyEmail = lazy(() => import("./views/account/verifyEmail"));
 const PriceHistory = lazy(() => import("./views/priceHistory"));
+const Notifications = lazy(() => import("./views/notifications"));
 
 const { none, user, admin } = TAuthLevel;
 
@@ -53,8 +54,8 @@ const ROUTES: Record<TRoute, TRouteDetails> = {
   },
   [TRoute.email_updates]: {
     name: "Notifications",
-    Icon: Notifications,
-    element: <></>,
+    Icon: NotificationsIcon,
+    element: <Notifications />,
     level: user,
   },
   [TRoute.my_account]: {
