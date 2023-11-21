@@ -3,10 +3,12 @@ import {
   Box,
   Divider,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputLabel,
   MenuItem,
   Select,
+  Switch,
   Tab,
   Tabs,
   TextField,
@@ -37,6 +39,7 @@ const Tags = (): JSX.Element => {
   const links = links_?.items ?? EMPTY_ARR;
 
   const [filterModel, setFilterModel] = useState<GridFilterModel>();
+  const [deleting, setDeleting] = useState<boolean>(false);
 
   const [cat_, setCat] = useState<number | undefined>();
   const [col_, setCol] = useState<string | undefined>();
@@ -134,10 +137,21 @@ const Tags = (): JSX.Element => {
             endAdornment: <FilterAlt sx={{ color: PALETTE.text.disabled }} />,
           }}
         />
+        <FormControlLabel
+          control={
+            <Switch
+              checked={deleting}
+              onChange={(_, checked) => setDeleting(checked)}
+              sx={{ ml: "auto" }}
+            />
+          }
+          label="Delete mode"
+          sx={{ color: PALETTE.text.secondary, ml: "auto" }}
+        />
         <TextField
           inputRef={newTagRef}
           label={`Add ${cat.name}`}
-          sx={{ backgroundColor: PALETTE.background.paper, ml: "auto" }}
+          sx={{ backgroundColor: PALETTE.background.paper }}
           onKeyDown={(e) => {
             if (e.key === "Enter") void addTag();
           }}
@@ -155,6 +169,8 @@ const Tags = (): JSX.Element => {
           tagMap={tagMap}
           tags={tags}
           filterModel={filterModel}
+          deleting={deleting}
+          setDeleting={setDeleting}
         />
       </Box>
     </Box>

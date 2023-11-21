@@ -1,5 +1,12 @@
 import { Add, Delete } from "@mui/icons-material";
-import { Box, IconButton, TextField, Tooltip } from "@mui/material";
+import {
+  Box,
+  FormControlLabel,
+  IconButton,
+  Switch,
+  TextField,
+  Tooltip,
+} from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isUndefined } from "lodash";
@@ -24,7 +31,7 @@ const Categories = (): JSX.Element => {
     onSettled,
   });
 
-  const { mutateAsync: deleteCats, isLoading: isDeleting } = useMutation({
+  const { mutateAsync: deleteCats } = useMutation({
     ...admin.deleteCategories.useMutation(),
     onSettled,
   });
@@ -55,7 +62,12 @@ const Categories = (): JSX.Element => {
         field: "deleting",
         renderCell: ({ row }) => (
           <Tooltip title={"Delete category"}>
-            <IconButton onClick={() => void deleteCats({ items: [row] })}>
+            <IconButton
+              onClick={async () => {
+                await deleteCats({ items: [row] });
+                setDeleting(false);
+              }}
+            >
               <Delete />
             </IconButton>
           </Tooltip>
@@ -78,13 +90,17 @@ const Categories = (): JSX.Element => {
       }}
     >
       <Box sx={{ mx: 2, mt: 2, display: "flex", gap: 1, alignItems: "center" }}>
-        <IconButton
-          onClick={() => setDeleting((prev) => !prev)}
-          color={deleting ? "primary" : "default"}
-          sx={{ ml: "auto" }}
-        >
-          {isDeleting ? <LoadingIcon /> : <Delete />}
-        </IconButton>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={deleting}
+              onChange={(_, checked) => setDeleting(checked)}
+              sx={{ ml: "auto" }}
+            />
+          }
+          label="Delete mode"
+          sx={{ color: PALETTE.text.secondary, ml: "auto" }}
+        />
         <TextField
           inputRef={newCatRef}
           label="Add category"

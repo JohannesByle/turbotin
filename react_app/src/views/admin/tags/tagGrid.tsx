@@ -1,14 +1,17 @@
+import { Delete } from "@mui/icons-material";
+import { IconButton, Tooltip } from "@mui/material";
 import { DataGrid, GridColDef, GridFilterModel } from "@mui/x-data-grid";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { fromPairs, groupBy, isUndefined, sortBy, toPairs } from "lodash";
 import React, { useMemo } from "react";
-import { PALETTE } from "../../../consts";
+import { ICON_COL_PROPS, PALETTE } from "../../../consts";
 import * as admin from "../../../protos/turbotin-Admin_connectquery";
 import {
   getTagToTags,
   getTags,
 } from "../../../protos/turbotin-Public_connectquery";
 import { Category, Tag, TagToTag } from "../../../protos/turbotin_pb";
+import { TSetState } from "../../../util";
 import TagEditCell from "../editCell";
 import { NULL_CAT, TRow, getChildren, getValidCats } from "./util";
 
@@ -19,6 +22,8 @@ type TProps = {
   tagMap: Map<number, Tag>;
   catMap: Map<number, Category>;
   filterModel?: GridFilterModel;
+  deleting: boolean;
+  setDeleting: TSetState<boolean>;
 };
 
 function tagsToRows(
@@ -48,14 +53,35 @@ function tagsToRows(
 }
 
 const TagGrid = (props: TProps): JSX.Element => {
-  const { tags, cat, links, catMap, tagMap, filterModel } = props;
+  const {
+    tags,
+    cat,
+    links,
+    catMap,
+    tagMap,
+    filterModel,
+    deleting,
+    setDeleting,
+  } = props;
 
   const catValues = useMemo(() => groupBy(tags, (t) => t.categoryId), [tags]);
-  const { mutateAsync: setTagToTags } = useMutation(
-    admin.setTagToTags.useMutation()
-  );
-  const { mutateAsync: setTags } = useMutation(admin.setTags.useMutation());
   const queryClient = useQueryClient();
+
+  const { mutateAsync: setTagToTags } = useMutation({
+    ...admin.setTagToTags.useMutation(),
+  });
+  const onSettled = (): void =>
+    void queryClient.invalidateQueries({
+      queryKey: getTags.getQueryKey(),
+    });
+  const { mutateAsync: setTags } = useMutation({
+    ...admin.setTags.useMutation(),
+    onSettled,
+  });
+  const { mutateAsync: deleteTags } = useMutation({
+    ...admin.deleteTags.useMutation(),
+    onSettled,
+  });
 
   const children = getChildren(cat, catMap, tagMap, links);
 
@@ -64,37 +90,62 @@ const TagGrid = (props: TProps): JSX.Element => {
     [cat, catMap, links, tagMap]
   );
 
-  const columns = useMemo(
-    (): Array<GridColDef<TRow>> =>
-      getValidCats(cat, catMap, tagMap, links)
-        .filter((c) => c !== NULL_CAT)
-        .map(
-          (c): GridColDef<TRow, string | Tag> => ({
-            field: String(c.id),
-            headerName: c.name,
-            flex: 1,
-            valueGetter: ({ row }) => row[c.id]?.value,
-            valueSetter:
-              c === cat
-                ? ({ row, value }) => {
-                    if (value instanceof Tag) return row;
-                    const tag = row[c.id].clone();
-                    tag.value = value;
-                    return { ...row, [c.id]: tag };
-                  }
-                : ({ row, value }) =>
-                    value instanceof Tag ? { ...row, [c.id]: value } : row,
-            editable: true,
-            type: "string",
-            ...(c !== cat && {
-              renderEditCell: (params) => (
-                <TagEditCell params={params} c={c} catValues={catValues} />
-              ),
-            }),
-          })
+  const columns = useMemo((): Array<GridColDef<TRow>> => {
+    const result = getValidCats(cat, catMap, tagMap, links)
+      .filter((c) => c !== NULL_CAT)
+      .map(
+        (c): GridColDef<TRow, string | Tag> => ({
+          field: String(c.id),
+          headerName: c.name,
+          flex: 1,
+          valueGetter: ({ row }) => row[c.id]?.value,
+          valueSetter:
+            c === cat
+              ? ({ row, value }) => {
+                  if (value instanceof Tag) return row;
+                  const tag = row[c.id].clone();
+                  tag.value = value;
+                  return { ...row, [c.id]: tag };
+                }
+              : ({ row, value }) =>
+                  value instanceof Tag ? { ...row, [c.id]: value } : row,
+          editable: true,
+          type: "string",
+          ...(c !== cat && {
+            renderEditCell: (params) => (
+              <TagEditCell params={params} c={c} catValues={catValues} />
+            ),
+          }),
+        })
+      );
+    if (deleting)
+      result.push({
+        field: "deleting",
+        renderCell: ({ row }) => (
+          <Tooltip title={"Delete category"}>
+            <IconButton
+              onClick={async () => {
+                await deleteTags({ items: [row] });
+                setDeleting(false);
+              }}
+            >
+              <Delete />
+            </IconButton>
+          </Tooltip>
         ),
-    [cat, catMap, tagMap, links, catValues]
-  );
+        ...ICON_COL_PROPS,
+      });
+    return result;
+  }, [
+    cat,
+    catMap,
+    tagMap,
+    links,
+    deleting,
+    catValues,
+    deleteTags,
+    setDeleting,
+  ]);
 
   return (
     <DataGrid
@@ -122,9 +173,7 @@ const TagGrid = (props: TProps): JSX.Element => {
           if (k === cat.id) {
             try {
               await setTags({ items: [v] });
-              await queryClient.invalidateQueries({
-                queryKey: getTags.getQueryKey(),
-              });
+
               return newRow;
             } catch {
               return oldRow;

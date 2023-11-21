@@ -190,10 +190,8 @@ message NotificationList {
 
 service Admin {
   rpc SetTobaccoToTags(TobaccoToTagList) returns (EmptyArgs) {}
-  rpc DeleteTobaccoToTags(TobaccoToTagList) returns (EmptyArgs) {}
 
   rpc SetTagToTags(TagToTagList) returns (EmptyArgs) {}
-  rpc DeleteTagToTags(TagToTagList) returns (EmptyArgs) {}
 
   rpc SetTags(TagList) returns (EmptyArgs) {}
   rpc DeleteTags(TagList) returns (EmptyArgs) {}

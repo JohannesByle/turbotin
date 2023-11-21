@@ -54,10 +54,6 @@ func recurse(id int, tagMap map[int][]int, catMap map[int]int, seenTags map[int]
 		if err != nil {
 			return err
 		}
-		if len(seenTags) != len(seenCats) {
-			return TAG_CYCLE
-		}
-
 	}
 	seenTags[id] = false
 	return nil
@@ -149,20 +145,6 @@ func (s *Admin) SetTobaccoToTags(ctx context.Context, req *Request[pb.TobaccoToT
 	return NewResponse[pb.EmptyArgs](nil), nil
 }
 
-func (s *Admin) DeleteTobaccoToTags(ctx context.Context, req *Request[pb.TobaccoToTagList]) (*Response[pb.EmptyArgs], error) {
-	DB.Transaction(func(tx *gorm.DB) error {
-		links := []*models.TobaccoToTag{}
-		for _, link := range req.Msg.Items {
-			links = append(links, &models.TobaccoToTag{Model: gorm.Model{ID: uint(link.Id)}})
-		}
-		if err := tx.Unscoped().Delete(links).Error; err != nil {
-			return err
-		}
-		return assertStructureValid(tx)
-	})
-	return NewResponse[pb.EmptyArgs](nil), nil
-}
-
 func (s *Admin) SetTagToTags(ctx context.Context, req *Request[pb.TagToTagList]) (*Response[pb.EmptyArgs], error) {
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		links := []*models.TagToTag{}
@@ -174,23 +156,6 @@ func (s *Admin) SetTagToTags(ctx context.Context, req *Request[pb.TagToTagList])
 			})
 		}
 		if err := tx.Save(links).Error; err != nil {
-			return err
-		}
-		return assertStructureValid(tx)
-	})
-	if err != nil {
-		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
-	}
-	return NewResponse[pb.EmptyArgs](nil), nil
-}
-
-func (s *Admin) DeleteTagToTags(ctx context.Context, req *Request[pb.TagToTagList]) (*Response[pb.EmptyArgs], error) {
-	err := DB.Transaction(func(tx *gorm.DB) error {
-		links := []*models.TagToTag{}
-		for _, link := range req.Msg.Items {
-			links = append(links, &models.TagToTag{Model: gorm.Model{ID: uint(link.Id)}})
-		}
-		if err := tx.Unscoped().Delete(links).Error; err != nil {
 			return err
 		}
 		return assertStructureValid(tx)
