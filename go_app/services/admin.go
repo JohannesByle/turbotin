@@ -149,6 +149,20 @@ func (s *Admin) SetTobaccoToTags(ctx context.Context, req *Request[pb.TobaccoToT
 	return NewResponse[pb.EmptyArgs](nil), nil
 }
 
+func (s *Admin) DeleteTobaccoToTags(ctx context.Context, req *Request[pb.TobaccoToTagList]) (*Response[pb.EmptyArgs], error) {
+	DB.Transaction(func(tx *gorm.DB) error {
+		links := []*models.TobaccoToTag{}
+		for _, link := range req.Msg.Items {
+			links = append(links, &models.TobaccoToTag{Model: gorm.Model{ID: uint(link.Id)}})
+		}
+		if err := tx.Unscoped().Delete(links).Error; err != nil {
+			return err
+		}
+		return assertStructureValid(tx)
+	})
+	return NewResponse[pb.EmptyArgs](nil), nil
+}
+
 func (s *Admin) SetTagToTags(ctx context.Context, req *Request[pb.TagToTagList]) (*Response[pb.EmptyArgs], error) {
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		links := []*models.TagToTag{}
@@ -160,6 +174,23 @@ func (s *Admin) SetTagToTags(ctx context.Context, req *Request[pb.TagToTagList])
 			})
 		}
 		if err := tx.Save(links).Error; err != nil {
+			return err
+		}
+		return assertStructureValid(tx)
+	})
+	if err != nil {
+		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
+	}
+	return NewResponse[pb.EmptyArgs](nil), nil
+}
+
+func (s *Admin) DeleteTagToTags(ctx context.Context, req *Request[pb.TagToTagList]) (*Response[pb.EmptyArgs], error) {
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		links := []*models.TagToTag{}
+		for _, link := range req.Msg.Items {
+			links = append(links, &models.TagToTag{Model: gorm.Model{ID: uint(link.Id)}})
+		}
+		if err := tx.Unscoped().Delete(links).Error; err != nil {
 			return err
 		}
 		return assertStructureValid(tx)
@@ -191,6 +222,23 @@ func (s *Admin) SetTags(ctx context.Context, req *Request[pb.TagList]) (*Respons
 	return NewResponse[pb.EmptyArgs](nil), nil
 }
 
+func (s *Admin) DeleteTags(ctx context.Context, req *Request[pb.TagList]) (*Response[pb.EmptyArgs], error) {
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		tags := []*models.Tag{}
+		for _, tag := range req.Msg.Items {
+			tags = append(tags, &models.Tag{Model: gorm.Model{ID: uint(tag.Id)}})
+		}
+		if err := tx.Unscoped().Delete(tags).Error; err != nil {
+			return err
+		}
+		return assertStructureValid(tx)
+	})
+	if err != nil {
+		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
+	}
+	return NewResponse[pb.EmptyArgs](nil), nil
+}
+
 func (s *Admin) SetCategories(ctx context.Context, req *Request[pb.CategoryList]) (*Response[pb.EmptyArgs], error) {
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		cats := []*models.Category{}
@@ -201,6 +249,23 @@ func (s *Admin) SetCategories(ctx context.Context, req *Request[pb.CategoryList]
 			})
 		}
 		if err := tx.Save(cats).Error; err != nil {
+			return err
+		}
+		return assertStructureValid(tx)
+	})
+	if err != nil {
+		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
+	}
+	return NewResponse[pb.EmptyArgs](nil), nil
+}
+
+func (s *Admin) DeleteCategories(ctx context.Context, req *Request[pb.CategoryList]) (*Response[pb.EmptyArgs], error) {
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		cats := []*models.Category{}
+		for _, cat := range req.Msg.Items {
+			cats = append(cats, &models.Category{Model: gorm.Model{ID: uint(cat.Id)}})
+		}
+		if err := tx.Unscoped().Delete(cats).Error; err != nil {
 			return err
 		}
 		return assertStructureValid(tx)

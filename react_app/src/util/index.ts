@@ -1,6 +1,6 @@
 import { useMediaQuery } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { Dictionary, isString, isUndefined, last, values } from "lodash";
+import { isString, isUndefined, last, values } from "lodash";
 import { Dispatch, SetStateAction, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { THEME, TRoute } from "../consts";
@@ -29,8 +29,8 @@ export const useUser = (): User => {
   return user ?? new User();
 };
 
-export const arrayOf = <T extends string | number>(t: Dictionary<T>): T[] => {
-  const arr = values(t);
+export const arrayOf = <T>(t: T): Array<T[keyof T]> => {
+  const arr = values(t) as Array<T[keyof T]>;
   return isString(last(arr)) ? arr : arr.slice(arr.length / 2, arr.length);
 };
 

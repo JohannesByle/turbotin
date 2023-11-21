@@ -1,7 +1,9 @@
-import { fromPairs, toPairs } from "lodash";
+import { fromPairs, sortBy, toPairs } from "lodash";
 import { Store } from "./protos/turbotin_pb";
 import { createTheme } from "@mui/material";
 import { cyan, grey, yellow } from "@mui/material/colors";
+import { arrayOf } from "./util";
+import { GridColDef } from "@mui/x-data-grid";
 
 export const NODE_ENV = process.env.NODE_ENV ?? "production";
 export const IS_PROD = NODE_ENV === "production";
@@ -17,6 +19,12 @@ export const JWT_KEY = "jwt";
 export const BLEND = "Blend";
 export const BRAND = "Brand";
 export const INDIVIDUAL_BLENDS = "/individual_blends";
+export const ICON_COL_WIDTH = 40;
+export const ICON_COL_PROPS = {
+  width: ICON_COL_WIDTH,
+  align: "center",
+  headerName: "",
+} satisfies Partial<GridColDef>;
 
 export const THEME = createTheme({
   palette: {
@@ -96,6 +104,8 @@ export const STORE_TO_NAME: Record<Store, string> = {
 export const NAME_TO_STORE = fromPairs(
   toPairs(STORE_TO_NAME).map(([k, v]) => [v, Number(k)])
 ) as Record<string, Store>;
+
+export const ALL_STORES = sortBy(arrayOf(Store), (s) => STORE_TO_NAME[s]);
 
 export const EMPTY_ARR = [] as [];
 

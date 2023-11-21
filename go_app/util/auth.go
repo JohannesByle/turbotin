@@ -153,6 +153,12 @@ var AUTH_INTERCEPTOR = UnaryInterceptorFunc(func(next UnaryFunc) UnaryFunc {
 			whitelisted = whitelisted || str == method
 		}
 
+		if authenticated && method[1:len(AdminName)+1] == AdminName {
+			user := models.User{}
+			DB.Where("email = ?", email).Find(&user)
+			authenticated = user.IsAdmin
+		}
+
 		if authenticated {
 			return next(context.WithValue(ctx, EMAIL_KEY, email), req)
 		} else if !whitelisted {

@@ -38,8 +38,8 @@ func InitGorm() {
 		&models.User{},
 		&models.Tobacco{},
 		&models.TobaccoPrice{},
-		&models.Tag{},
 		&models.Category{},
+		&models.Tag{},
 		&models.TagToTag{},
 		&models.TobaccoToTag{},
 		&models.Notification{})

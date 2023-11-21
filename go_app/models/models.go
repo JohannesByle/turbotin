@@ -25,10 +25,12 @@ type User struct {
 
 type Notification struct {
 	gorm.Model
-	UserId        uint `gorm:"index;uniqueIndex:tag_user"`
-	TagId         uint `gorm:"index;uniqueIndex:tag_user"`
-	MaxPrice      sql.NullInt16
-	AllowedStores string `gorm:"type:varchar(250);"`
+	UserId   uint `gorm:"index;uniqueIndex:tag_user"`
+	TagId    uint `gorm:"index;uniqueIndex:tag_user"`
+	MaxPrice sql.NullInt16
+
+	Stores        string `gorm:"type:varchar(250);"`
+	ExcludeStores bool
 }
 
 type Tobacco struct {
@@ -61,11 +63,15 @@ type TagToTag struct {
 
 type Tag struct {
 	gorm.Model
-	Value      string `gorm:"type:varchar(500)"`
-	CategoryId uint   `gorm:"index"`
+	Value         string         `gorm:"type:varchar(500)"`
+	CategoryId    uint           `gorm:"index"`
+	Links         []TagToTag     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	ParentLinks   []TagToTag     `gorm:"foreignKey:ParentTagId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	TobaccoToTags []TobaccoToTag `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 type Category struct {
 	gorm.Model
 	Name string `gorm:"type:varchar(100);unique"`
+	Tags []Tag  `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }

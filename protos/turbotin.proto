@@ -173,13 +173,15 @@ message TobaccoPrices {
 service Notifications {
   rpc GetNotifications(EmptyArgs) returns (NotificationList) {}
   rpc SetNotifications(NotificationList) returns (EmptyResponse) {}
+  rpc DeleteNotifications(IntegerList) returns (EmptyResponse) {}
 }
 
 message Notification {
   uint32 id = 1;
   uint32 tag_id = 2;
   uint32 max_price = 3;
-  string allowed_stores = 4;
+  string stores = 4;
+  bool exclude_stores = 5;
 }
 
 message NotificationList {
@@ -188,9 +190,16 @@ message NotificationList {
 
 service Admin {
   rpc SetTobaccoToTags(TobaccoToTagList) returns (EmptyArgs) {}
+  rpc DeleteTobaccoToTags(TobaccoToTagList) returns (EmptyArgs) {}
+
   rpc SetTagToTags(TagToTagList) returns (EmptyArgs) {}
+  rpc DeleteTagToTags(TagToTagList) returns (EmptyArgs) {}
+
   rpc SetTags(TagList) returns (EmptyArgs) {}
+  rpc DeleteTags(TagList) returns (EmptyArgs) {}
+
   rpc SetCategories(CategoryList) returns (EmptyArgs) {}
+  rpc DeleteCategories(CategoryList) returns (EmptyArgs) {}
 }
 
 message TobaccoToTag {

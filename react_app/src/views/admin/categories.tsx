@@ -1,32 +1,33 @@
-import { Add } from "@mui/icons-material";
-import { Box, IconButton, TextField } from "@mui/material";
+import { Add, Delete } from "@mui/icons-material";
+import { Box, IconButton, TextField, Tooltip } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isUndefined } from "lodash";
-import React, { useCallback, useRef } from "react";
-import { EMPTY_ARR, PALETTE, voidFn } from "../../consts";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { EMPTY_ARR, ICON_COL_PROPS, PALETTE, voidFn } from "../../consts";
 import * as admin from "../../protos/turbotin-Admin_connectquery";
 import { getCategories } from "../../protos/turbotin-Public_connectquery";
 import { Category, CategoryList } from "../../protos/turbotin_pb";
 import LoadingIcon from "../../util/components/loadingIcon";
 
-const COLUMNS: Array<GridColDef<Category>> = [
-  {
-    field: "name" satisfies keyof Category,
-    headerName: "Name",
-    flex: 1,
-    editable: true,
-    type: "string",
-  },
-];
-
 const Categories = (): JSX.Element => {
-  const { data } = useQuery(getCategories.useQuery());
+  const [deleting, setDeleting] = useState<boolean>(false);
 
-  const { mutateAsync: setCats, isLoading } = useMutation(
-    admin.setCategories.useMutation()
-  );
+  const { data } = useQuery(getCategories.useQuery());
   const queryClient = useQueryClient();
+  const onSettled = (): void =>
+    void queryClient.invalidateQueries({
+      queryKey: getCategories.getQueryKey(),
+    });
+  const { mutateAsync: setCats, isLoading: isSaving } = useMutation({
+    ...admin.setCategories.useMutation(),
+    onSettled,
+  });
+
+  const { mutateAsync: deleteCats, isLoading: isDeleting } = useMutation({
+    ...admin.deleteCategories.useMutation(),
+    onSettled,
+  });
 
   const newCatRef = useRef<HTMLInputElement>();
 
@@ -39,10 +40,31 @@ const Categories = (): JSX.Element => {
     if (value.length === 0) return;
     await setCats(new CategoryList({ items: [new Category({ name: value })] }));
     el.value = "";
-    await queryClient.invalidateQueries({
-      queryKey: getCategories.getQueryKey(),
-    });
-  }, [setCats, queryClient]);
+  }, [setCats]);
+
+  const columns = useMemo(
+    (): Array<GridColDef<Category>> => [
+      {
+        field: "name" satisfies keyof Category,
+        headerName: "Name",
+        flex: 1,
+        editable: true,
+        type: "string",
+      },
+      {
+        field: "deleting",
+        renderCell: ({ row }) => (
+          <Tooltip title={"Delete category"}>
+            <IconButton onClick={() => void deleteCats({ items: [row] })}>
+              <Delete />
+            </IconButton>
+          </Tooltip>
+        ),
+        ...ICON_COL_PROPS,
+      },
+    ],
+    [deleteCats]
+  );
 
   return (
     <Box
@@ -56,31 +78,36 @@ const Categories = (): JSX.Element => {
       }}
     >
       <Box sx={{ mx: 2, mt: 2, display: "flex", gap: 1, alignItems: "center" }}>
+        <IconButton
+          onClick={() => setDeleting((prev) => !prev)}
+          color={deleting ? "primary" : "default"}
+          sx={{ ml: "auto" }}
+        >
+          {isDeleting ? <LoadingIcon /> : <Delete />}
+        </IconButton>
         <TextField
           inputRef={newCatRef}
           label="Add category"
-          sx={{ backgroundColor: PALETTE.background.paper, ml: "auto" }}
+          sx={{ backgroundColor: PALETTE.background.paper }}
           onKeyDown={(e) => {
             if (e.key === "Enter") void addCat();
           }}
         />
         <IconButton onClick={addCat} color="primary">
-          {isLoading ? <LoadingIcon /> : <Add />}
+          {isSaving ? <LoadingIcon /> : <Add />}
         </IconButton>
       </Box>
       <Box sx={{ flex: 1, height: "100%", minWidth: 0, p: 2, minHeight: 0 }}>
         <DataGrid
           rows={categories}
           loading={queryClient.isFetching() > 0 || queryClient.isMutating() > 0}
-          columns={COLUMNS}
+          columns={columns}
           sx={{ backgroundColor: PALETTE.background.paper }}
           processRowUpdate={async (newRow) => {
             await setCats(new CategoryList({ items: [newRow] })).catch(voidFn);
-            await queryClient.invalidateQueries({
-              queryKey: getCategories.getQueryKey(),
-            });
             return newRow;
           }}
+          columnVisibilityModel={{ deleting }}
         />
       </Box>
     </Box>

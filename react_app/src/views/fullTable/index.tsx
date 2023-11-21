@@ -25,6 +25,7 @@ import { useNavigate } from "react-router-dom";
 import {
   BLEND,
   EMPTY_ARR,
+  ICON_COL_PROPS,
   INDIVIDUAL_BLENDS,
   KebapMenu,
   MS_PER_SECOND,
@@ -186,8 +187,6 @@ const FullTable = (): JSX.Element => {
       ),
       {
         field: "inStock" satisfies keyof ObsTobacco,
-        width: 40,
-        headerName: "",
         hideable: false,
         renderCell: ({ row }) =>
           row.inStock ? (
@@ -197,6 +196,7 @@ const FullTable = (): JSX.Element => {
               <ProductionQuantityLimits color="error" />
             </Tooltip>
           ),
+        ...ICON_COL_PROPS,
       },
       {
         field: "kebap",
@@ -213,6 +213,19 @@ const FullTable = (): JSX.Element => {
             <KebapMenu />
           </IconButton>
         ),
+      },
+      {
+        field: "delete",
+        hideable: false,
+        renderCell: ({ row }) =>
+          row.inStock ? (
+            <></>
+          ) : (
+            <Tooltip title="Out of stock">
+              <ProductionQuantityLimits color="error" />
+            </Tooltip>
+          ),
+        ...ICON_COL_PROPS,
       },
     ],
     [cats, filter.item]

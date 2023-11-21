@@ -1,5 +1,5 @@
 import { Autocomplete, TextField } from "@mui/material";
-import { groupBy, isUndefined, sortBy } from "lodash";
+import { groupBy, isEqual, isUndefined, sortBy } from "lodash";
 import React, { useMemo } from "react";
 import { BLEND, BRAND, PALETTE } from "../../consts";
 import { Tag } from "../../protos/turbotin_pb";
@@ -58,6 +58,7 @@ const BlendSelect = (props: TProps): JSX.Element => {
       groupBy={getBrand}
       sx={{ width: 300, m: 1 }}
       onChange={(_, tag) => setTag(tag)}
+      isOptionEqualToValue={isEqual}
       disableClearable
     />
   );
