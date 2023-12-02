@@ -17,7 +17,7 @@ type Admin struct{}
 var (
 	MISSING_CAT  = errors.New("Missing category")
 	TAG_CYCLE    = errors.New("Tag cycle detected")
-	INVALID_CAT  = errors.New("Invalid category hierarchy")
+	CAT_CYCLE    = errors.New("Category cycle detected")
 	NON_ROOT_CAT = errors.New("Tobacco links must all be root categories")
 )
 
@@ -57,7 +57,26 @@ func recurse(id int, tagMap map[int][]int, catMap map[int]int, seenTags map[int]
 	}
 	seenTags[id] = false
 	return nil
+}
 
+func recurseCats(id int, catMap map[int]map[int]bool, seenCats map[int]bool) error {
+	_, seen := seenCats[id]
+	if seen {
+		return CAT_CYCLE
+	}
+	seenCats[id] = true
+	children, ok := catMap[id]
+	if !ok {
+		return nil
+	}
+	for childId := range children {
+		err := recurseCats(childId, catMap, seenCats)
+		if err != nil {
+			return err
+		}
+	}
+	seenCats[id] = false
+	return nil
 }
 
 func assertStructureValid(tx *gorm.DB) error {
@@ -115,13 +134,9 @@ func assertStructureValid(tx *gorm.DB) error {
 			return err
 		}
 	}
-	for catId, children := range seenCats {
-		for childId := range children {
-			otherChildren, ok := seenCats[childId]
-			if ok && otherChildren[catId] {
-				return INVALID_CAT
-			}
-
+	for catId := range seenCats {
+		if err := recurseCats(catId, seenCats, map[int]bool{}); err != nil {
+			return err
 		}
 	}
 	return nil
