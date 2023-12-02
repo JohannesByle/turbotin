@@ -66,8 +66,8 @@ const BaseView = (): JSX.Element => {
           <Img
             src={LOGO_URL}
             sx={{
-              height: "3em",
-              width: "3em",
+              height: "48px",
+              width: "48px",
               mx: 1,
             }}
           />

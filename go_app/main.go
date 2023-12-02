@@ -39,6 +39,7 @@ func fileHandler(h http.Handler) http.Handler {
 		info, err := os.Stat(filePath)
 		args := util.LogArgs{Path: req.URL.Path}
 		start := time.Now()
+		writer.Header().Set("Cache-Control", "max-age=31536000")
 
 		if errors.Is(err, os.ErrNotExist) || !strings.HasPrefix(filePath, STATIC_DIR) || info.IsDir() {
 			http.ServeFile(writer, req, INDEX_FILE)

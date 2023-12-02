@@ -7,7 +7,7 @@ import { GridColDef } from "@mui/x-data-grid";
 
 export const NODE_ENV = process.env.NODE_ENV ?? "production";
 export const IS_PROD = NODE_ENV === "production";
-export const LOGO_URL = "/TurboTinLogo.png";
+export const LOGO_URL = "/TurboTinLogo_72x72.png";
 export const CURRENT_USER_STR = "4e29cdd3-1156-4093-b50c-263a62426f98";
 export const FLASHES_STR = "52deada2-598d-496f-a122-899d39d7996e";
 export const CLIENT_REQUEST_STR = "dbb85551-a874-48c4-9c05-485bfe3b7160";
