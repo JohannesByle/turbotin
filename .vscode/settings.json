@@ -1,0 +1,8 @@
+{
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "eslint.workingDirectories": ["./react_app/"],
+  "eslint.nodePath": "./react_app/node_modules/",
+  "insertGuid.showUppercase": true
+}

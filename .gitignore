@@ -33,7 +33,6 @@
 /**/.venv/
 /react_app/src/service/
 /instance/
-/.vscode/
 /flask_app/private_config.py
 /data/*
 /port_data.py
