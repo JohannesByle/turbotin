@@ -9,7 +9,7 @@ import (
 	pb "turbotin/protos"
 	. "turbotin/util"
 
-	. "turbotin/gen/turbotin/table"
+	jet "turbotin/gen/turbotin/table"
 
 	. "connectrpc.com/connect"
 	. "github.com/go-jet/jet/v2/mysql"
@@ -27,7 +27,7 @@ func inStock(str string) bool {
 }
 
 func (s *Public) TodaysTobaccos(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.ObsTobaccoList], error) {
-	var prices = TobaccoPrices
+	var prices = jet.TobaccoPrices
 
 	type Row struct {
 		TobaccoID int
@@ -39,7 +39,7 @@ func (s *Public) TodaysTobaccos(ctx context.Context, req *Request[pb.EmptyArgs])
 		Link      string
 	}
 
-	isLatestDay := func(t *TobaccoPricesTable) BoolExpression {
+	isLatestDay := func(t *jet.TobaccoPricesTable) BoolExpression {
 		return t.Time.GT(TimestampExp(SelectStatement(SELECT(DateExp(MAX(t.Time)).ADD(INTERVAL(-1, DAY))).FROM(t))))
 	}
 
@@ -56,14 +56,14 @@ func (s *Public) TodaysTobaccos(ctx context.Context, req *Request[pb.EmptyArgs])
 		MAX(t1.Price).AS(t1.Price.Name()),
 		MAX(t1.Stock).AS(t1.Stock.Name()),
 		MAX(t1.Time).AS(t1.Time.Name()),
-		MAX(Tobaccos.Item).AS(Tobaccos.Item.Name()),
-		MAX(Tobaccos.Link).AS(Tobaccos.Link.Name()),
-		MAX(Tobaccos.Store).AS(Tobaccos.Store.Name())).
+		MAX(jet.Tobaccos.Item).AS(jet.Tobaccos.Item.Name()),
+		MAX(jet.Tobaccos.Link).AS(jet.Tobaccos.Link.Name()),
+		MAX(jet.Tobaccos.Store).AS(jet.Tobaccos.Store.Name())).
 		FROM(t1.
 			INNER_JOIN(t2,
 				t1.TobaccoID.EQ(IntegerColumn(t1.TobaccoID.Name()).From(t2)).
 					AND(t1.Time.EQ(DateTimeColumn(t1.Time.Name()).From(t2)))).
-			LEFT_JOIN(Tobaccos, Tobaccos.ID.EQ(t1.TobaccoID))).
+			LEFT_JOIN(jet.Tobaccos, jet.Tobaccos.ID.EQ(t1.TobaccoID))).
 		WHERE(isLatestDay(t1)).
 		GROUP_BY(t1.TobaccoID).Sql()
 

@@ -38,6 +38,5 @@
 /data/*
 /port_data.py
 *.env
-/go_app/gen/
 /go_app/protos/
 /react_app/src/protos/
