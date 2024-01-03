@@ -11,18 +11,20 @@ def scrape(pbar=None):
     soup = get_html(url)
     next_page = True
     while next_page:
-        for products in soup.find_all("ul", class_="products")[:1]:
+        for products in soup.find_all("ul", class_="products elementor-grid columns-4")[:1]:
             for product in products.find_all("li", class_="product"):
-                item = product.find("h2", class_="woocommerce-loop-product__title fbm-class").get_text().strip()
+                if product.find("h2", class_="woocommerce-loop-product__title fbm-class"):
+                    item = product.find("h2", class_="woocommerce-loop-product__title fbm-class").get_text().strip()
                 if product.find("span", class_="woocommerce-Price-amount amount"):
                     price = product.find("span", class_="woocommerce-Price-amount amount").text
                 else:
                     if product.find("bdi"):
                         price = product.find("bdi").text
-                if product.find("a", class_="button").get_text() == "Read more":
-                    stock = "Out of stock"
-                if product.find("a", class_="button").get_text() == "Add to cart":
-                    stock = "In Stock"
+                if product.find("a", class_="button"):
+                    if product.find("a", class_="button").get_text() == "Read more":
+                        stock = "Out of stock"
+                    if product.find("a", class_="button").get_text() == "Add to cart":
+                        stock = "In Stock"
                 link = product.find("a").get("href")
 
                 item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
