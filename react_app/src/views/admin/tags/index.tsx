@@ -11,7 +11,7 @@ import {
   Switch,
   Tab,
   Tabs,
-  TextField,
+  TextField
 } from "@mui/material";
 import { GridFilterModel } from "@mui/x-data-grid";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -20,14 +20,11 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import { EMPTY_ARR, PALETTE } from "../../../consts";
 import * as admin from "../../../protos/turbotin-Admin_connectquery";
 import {
-  getCategories,
-  getTagToTags,
-  getTags,
+  getCategories, getTags, getTagToTags
 } from "../../../protos/turbotin-Public_connectquery";
-import { Tag, TagList } from "../../../protos/turbotin_pb";
 import LoadingIcon from "../../../util/components/loadingIcon";
 import TagGrid from "./tagGrid";
-import { NULL_CAT, OPERATOR, getChildren } from "./util";
+import { getChildren, NULL_CAT, OPERATOR } from "./util";
 
 const Tags = (): JSX.Element => {
   const { data: tags_ } = useQuery(getTags.useQuery());
@@ -49,8 +46,8 @@ const Tags = (): JSX.Element => {
   const tagMap = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
   const catMap = useMemo(() => new Map(cats.map((c) => [c.id, c])), [cats]);
 
-  const { mutateAsync: setTags, isLoading } = useMutation(
-    admin.setTags.useMutation()
+  const { mutateAsync: createTag, isLoading } = useMutation(
+    admin.createTag.useMutation()
   );
   const queryClient = useQueryClient();
 
@@ -66,14 +63,14 @@ const Tags = (): JSX.Element => {
     if (isUndefined(el)) return;
     const value = el.value;
     if (value.length === 0) return;
-    await setTags(
-      new TagList({ items: [new Tag({ value, categoryId: cat.id })] })
+    await createTag(
+      { value, categoryId: cat.id }
     );
     el.value = "";
     await queryClient.invalidateQueries({
       queryKey: getTags.getQueryKey(),
     });
-  }, [cat, setTags, queryClient]);
+  }, [cat, createTag, queryClient]);
 
   return (
     <Box

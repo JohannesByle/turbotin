@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -9,13 +10,29 @@ import (
 	"os"
 	"strings"
 	"time"
-	"turbotin/models"
+	"turbotin/ent"
 	"turbotin/protos"
+
+	"github.com/schollz/progressbar/v3"
 )
 
 type tobaccoKey struct {
 	item string
 	link string
+}
+
+func batch[T any](in []T, batchSize int) [][]T {
+	var result = make([][]T, 0)
+
+	for i := 0; i < len(in); i = i + batchSize {
+		j := i + batchSize
+		if j > len(in) {
+			j = len(in)
+		}
+		result = append(result, in[i:j])
+	}
+
+	return result
 }
 
 func PortTobaccos() {
@@ -25,7 +42,7 @@ func PortTobaccos() {
 	}
 	defer f.Close()
 
-	tobaccoMap := map[tobaccoKey]*models.Tobacco{}
+	tobaccoMap := map[tobaccoKey]*ent.Tobacco{}
 
 	r := csv.NewReader(f)
 	r.Read()
@@ -43,20 +60,24 @@ func PortTobaccos() {
 			continue
 		}
 		key := tobaccoKey{
-			item: strings.ToLower(record[2]),
-			link: strings.ToLower(url.String())}
+			item: strings.TrimSpace(strings.ToLower(record[2])),
+			link: strings.TrimSpace(strings.ToLower(url.String()))}
+		if len(key.link) == 0 || len(key.item) == 0 {
+			continue
+		}
 
 		tobacco, ok := tobaccoMap[key]
 		if !ok {
-			store, ok := protos.Store_value[record[1][6:]]
+			store, ok := protos.Store_value["STORE_"+strings.ToUpper(record[1])]
 			if !ok {
 				continue
 			}
-			tobacco = &models.Tobacco{
-				Store:  int32(store),
-				Item:   record[2],
-				Link:   url.String(),
-				Prices: make([]models.TobaccoPrice, 0)}
+
+			tobacco = &ent.Tobacco{
+				Store: int16(store),
+				Item:  record[2],
+				Link:  url.String(),
+				Edges: ent.TobaccoEdges{Prices: make([]*ent.TobaccoPrice, 0)}}
 			tobaccoMap[key] = tobacco
 
 		}
@@ -64,30 +85,45 @@ func PortTobaccos() {
 		if err != nil {
 			panic(fmt.Sprintf("unable to convert time: %s", record[6]))
 		}
-		tobacco.Prices = append(tobacco.Prices, models.TobaccoPrice{
+		tobacco.Edges.Prices = append(tobacco.Edges.Prices, &ent.TobaccoPrice{
 			Price: record[3],
 			Stock: record[4],
 			Time:  t})
 
 	}
 
-	tobaccos := []*models.Tobacco{}
-	for _, v := range tobaccoMap {
-		tobaccos = append(tobaccos, v)
+	tobaccos := []*ent.Tobacco{}
+	for _, t := range tobaccoMap {
+		tobaccos = append(tobaccos, t)
 	}
-	log.Println(len(tobaccos))
 
-	DB.Omit("Prices").CreateInBatches(tobaccos, 500)
+	ctx := context.Background()
+	rows := DB.Tobacco.MapCreateBulk(tobaccos, func(c *ent.TobaccoCreate, i int) {
+		t := tobaccos[i]
+		c.SetStore(t.Store).
+			SetItem(t.Item).
+			SetLink(t.Link).
+			AddPrices()
+	}).SaveX(ctx)
+	log.Printf("Created %d tobaccos", len(tobaccos))
 
-	prices := []models.TobaccoPrice{}
-	for _, tobacco := range tobaccos {
-		for _, price := range tobacco.Prices {
-			price.TobaccoId = tobacco.ID
-			prices = append(prices, price)
+	bar := progressbar.Default(int64(len(rows)), "Creating prices")
+	tobaccoArrs := batch(tobaccos, 500)
+	for i, arr := range batch(rows, 500) {
+		builders := []*ent.TobaccoPriceCreate{}
+		for j, t := range tobaccoArrs[i] {
+			for _, p := range t.Edges.Prices {
+				builders = append(builders, DB.TobaccoPrice.Create().
+					SetPrice(p.Price).
+					SetStock(p.Stock).
+					SetTime(p.Time).
+					SetTobacco(arr[j]))
+			}
 		}
+
+		DB.TobaccoPrice.CreateBulk(builders...).SaveX(ctx)
+		bar.Add(len(arr))
 	}
-	log.Println(len(prices))
-	DB.CreateInBatches(prices, 500)
 
 }
 
@@ -130,61 +166,76 @@ func PortCategories() {
 
 	}
 
-	brandCat := &models.Category{Name: "Brand"}
-	DB.Create(brandCat)
-	blendCat := &models.Category{Name: "Blend"}
-	DB.Create(blendCat)
-	DB.Create(&models.Category{Name: "Size"})
-	DB.Create(&models.Category{Name: "Cut"})
+	ctx := context.Background()
 
-	brands := []*models.Tag{}
-	blends := []*models.Tag{}
-	blendTagMap := map[string][]*models.Tag{}
+	brandCat := DB.Category.Create().SetName("Brand").SaveX(ctx)
+	blendCat := DB.Category.Create().SetName("Blend").SaveX(ctx)
+	DB.Category.Create().SetName("Size").SaveX(ctx)
+	DB.Category.Create().SetName("Cut").SaveX(ctx)
+
+	brands := []*ent.Tag{}
+	blends := []*ent.Tag{}
 
 	// dedup on name
 	seenBlends := map[string]bool{}
 
 	for brand, arr := range blendMap {
-		brands = append(brands, &models.Tag{
-			CategoryId: brandCat.ID,
-			Value:      brand})
-		blendTags := []*models.Tag{}
+		brands = append(brands, &ent.Tag{Value: brand})
 		for blend := range arr {
 			if seenBlends[strings.ToLower(blend)] {
 				continue
 			}
 			seenBlends[strings.ToLower(blend)] = true
-			blendTag := &models.Tag{
-				CategoryId: blendCat.ID,
-				Value:      blend}
+			blendTag := &ent.Tag{Value: blend}
 			blends = append(blends, blendTag)
-			blendTags = append(blendTags, blendTag)
 		}
-		blendTagMap[brand] = blendTags
 	}
-	DB.CreateInBatches(brands, 500)
-	log.Println("Created brands")
-	DB.CreateInBatches(blends, 500)
-	log.Println("Created blends")
+	brands = DB.Tag.MapCreateBulk(brands, func(c *ent.TagCreate, i int) {
+		b := brands[i]
+		c.SetValue(b.Value).
+			SetCategory(brandCat)
+	}).SaveX(ctx)
+	log.Printf("Created %d brands", len(brands))
+	blends = DB.Tag.MapCreateBulk(blends, func(c *ent.TagCreate, i int) {
+		b := blends[i]
+		c.SetValue(b.Value).
+			SetCategory(blendCat)
+	}).SaveX(ctx)
+	blendNameMap := map[string]*ent.Tag{}
+	for _, blend := range blends {
+		blendNameMap[blend.Value] = blend
+	}
+	log.Printf("Created %d blends", len(blends))
 
-	tagToTags := []*models.TagToTag{}
+	tagToTags := []*ent.TagToTag{}
 	for _, brand := range brands {
-		for _, blend := range blendTagMap[brand.Value] {
-			tagToTags = append(tagToTags, &models.TagToTag{
-				ParentTagId: blend.ID,
-				TagId:       brand.ID})
+		for name := range blendMap[brand.Value] {
+			blend, ok := blendNameMap[name]
+			if !ok {
+				continue
+			}
+			tagToTags = append(tagToTags, &ent.TagToTag{
+				Edges: ent.TagToTagEdges{
+					ParentTag: blend,
+					Tag:       brand,
+				},
+			})
 		}
 	}
-	DB.CreateInBatches(tagToTags, 500)
-	log.Println("Created tags")
+	DB.TagToTag.MapCreateBulk(tagToTags, func(c *ent.TagToTagCreate, i int) {
+		t := tagToTags[i]
+		c.SetParentTag(t.Edges.ParentTag).
+			SetTag(t.Edges.Tag)
 
-	tobaccos := []*models.Tobacco{}
-	DB.Find(&tobaccos)
-	tobaccoMap := map[string]*models.Tobacco{}
+	}).SaveX(ctx)
+	log.Printf("Created %d links", len(tagToTags))
+
+	tobaccos := DB.Tobacco.Query().AllX(ctx)
+	tobaccoMap := map[string]*ent.Tobacco{}
 	for _, tobacco := range tobaccos {
 		tobaccoMap[tobacco.Item] = tobacco
 	}
-	tobaccoToTags := []*models.TobaccoToTag{}
+	tobaccoToTags := []*ent.TobaccoToTag{}
 	for _, blend := range blends {
 		names, ok := tobaccoBlendMap[blend.Value]
 		for _, name := range names {
@@ -195,14 +246,19 @@ func PortCategories() {
 			if !ok {
 				continue
 			}
-			tobaccoToTags = append(tobaccoToTags, &models.TobaccoToTag{
-				TobaccoId: tobacco.ID,
-				TagId:     blend.ID,
-			})
+			tobaccoToTags = append(tobaccoToTags, &ent.TobaccoToTag{Edges: ent.TobaccoToTagEdges{
+				Tobacco: tobacco,
+				Tag:     blend,
+			}})
+
 		}
 
 	}
-	DB.CreateInBatches(tobaccoToTags, 500)
-	log.Println("Created tobacco tags")
+	DB.TobaccoToTag.MapCreateBulk(tobaccoToTags, func(c *ent.TobaccoToTagCreate, i int) {
+		t := tobaccoToTags[i]
+		c.SetTag(t.Edges.Tag).
+			SetTobacco(t.Edges.Tobacco)
+	}).SaveX(ctx)
+	log.Printf("Created %d tobacco tags", len(tobaccoToTags))
 
 }

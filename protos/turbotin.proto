@@ -57,7 +57,7 @@ message EmptyResponse {}
 message EmptyArgs {}
 
 message IntegerList {
-  repeated uint32 items = 1;
+  repeated int32 items = 1;
 }
 
 service Auth {
@@ -80,7 +80,7 @@ message AuthArgs {
 }
 
 message VerifyEmailArgs {
-  uint32 user_id = 1;
+  int32 user_id = 1;
   string code = 2;
 }
 
@@ -99,7 +99,7 @@ message SendResetPasswordArgs {
 }
 
 message ResetPasswordArgs {
-  uint32 user_id = 1;
+  int32 user_id = 1;
   string code = 2;
   string password = 3;
 }
@@ -125,7 +125,7 @@ service Public {
 }
 
 message Tobacco {
-  uint32 id = 1;
+  int32 id = 1;
   string item = 2;
   Store store = 3;
   string link = 4;
@@ -142,7 +142,7 @@ message ObsTobacco {
   string price_str = 4;
   google.protobuf.Timestamp time = 5;
   bool in_stock = 6;
-  uint32 tobacco_id = 7;
+  int32 tobacco_id = 7;
 }
 
 message ObsTobaccoList {
@@ -172,14 +172,15 @@ message TobaccoPrices {
 
 service Notifications {
   rpc GetNotifications(EmptyArgs) returns (NotificationList) {}
-  rpc SetNotifications(NotificationList) returns (EmptyResponse) {}
+  rpc UpdateNotification(Notification) returns (EmptyResponse){}
+  rpc CreateNotification(Notification) returns (EmptyResponse) {}
   rpc DeleteNotifications(IntegerList) returns (EmptyResponse) {}
 }
 
 message Notification {
-  uint32 id = 1;
-  uint32 tag_id = 2;
-  uint32 max_price = 3;
+  int32 id = 1;
+  int32 tag_id = 2;
+  int32 max_price = 3;
   string stores = 4;
   bool exclude_stores = 5;
 }
@@ -189,21 +190,26 @@ message NotificationList {
 }
 
 service Admin {
-  rpc SetTobaccoToTags(TobaccoToTagList) returns (EmptyArgs) {}
+  rpc UpdateTobaccoToTag(TobaccoToTag) returns (EmptyArgs) {}
+  rpc CreateTobaccoToTag(TobaccoToTag) returns (EmptyArgs) {}
 
-  rpc SetTagToTags(TagToTagList) returns (EmptyArgs) {}
+  rpc UpdateTagToTag(TagToTag) returns (EmptyArgs) {}
+  rpc CreateTagToTag(TagToTag) returns (EmptyArgs) {}
 
-  rpc SetTags(TagList) returns (EmptyArgs) {}
-  rpc DeleteTags(TagList) returns (EmptyArgs) {}
 
-  rpc SetCategories(CategoryList) returns (EmptyArgs) {}
-  rpc DeleteCategories(CategoryList) returns (EmptyArgs) {}
+  rpc UpdateTag(Tag) returns (EmptyArgs) {}
+  rpc CreateTag(Tag) returns (EmptyArgs) {}
+  rpc DeleteTag(Tag) returns (EmptyArgs) {}
+
+  rpc UpdateCategory(Category) returns (EmptyArgs) {}
+  rpc CreateCategory(Category) returns (EmptyArgs) {}
+  rpc DeleteCategory(Category) returns (EmptyArgs) {}
 }
 
 message TobaccoToTag {
-  uint32 id = 1;
-  uint32 tag_id = 2;
-  uint32 tobacco_id = 3;
+  int32 id = 1;
+  int32 tag_id = 2;
+  int32 tobacco_id = 3;
 }
 
 message TobaccoToTagList {
@@ -211,9 +217,9 @@ message TobaccoToTagList {
 }
 
 message TagToTag {
-  uint32 id = 1;
-  uint32 tag_id = 2;
-  uint32 parent_tag_id = 3;
+  int32 id = 1;
+  int32 tag_id = 2;
+  int32 parent_tag_id = 3;
 }
 
 message TagToTagList {
@@ -221,9 +227,9 @@ message TagToTagList {
 }
 
 message Tag {
-  uint32 id = 1;
+  int32 id = 1;
   string value = 2;
-  uint32 category_id = 3;
+  int32 category_id = 3;
 }
 
 message TagList {
@@ -231,7 +237,7 @@ message TagList {
 }
 
 message Category {
-  uint32 id = 1;
+  int32 id = 1;
   string name = 2;
 }
 

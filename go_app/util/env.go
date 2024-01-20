@@ -9,10 +9,12 @@ import (
 var DEBUG_EMAIL, EMAIL, EMAIL_PASSWORD, SCHEME, HOST, DB_STR string
 var IS_PRODUCTION bool
 
+const ENV_FILE = ".env"
+
 func InitEnv() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		panic(err)
+	_, err := os.Stat(ENV_FILE)
+	if err == nil {
+		godotenv.Load(ENV_FILE)
 	}
 	DEBUG_EMAIL = os.Getenv("DEBUG_EMAIL")
 	EMAIL = os.Getenv("EMAIL")

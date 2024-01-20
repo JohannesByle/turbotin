@@ -1,4 +1,3 @@
-const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 
@@ -21,8 +20,7 @@ module.exports = {
     extensions: [".tsx", ".ts", ".js"],
   },
   output: {
-    filename: "[name].js",
-    path: path.resolve(__dirname, "build"),
+    filename: "[name].[contenthash].js",
     publicPath: "auto",
     clean: true,
   },

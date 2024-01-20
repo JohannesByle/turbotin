@@ -7,12 +7,12 @@ import {
   Chip,
   IconButton,
   TextField,
-  Tooltip,
+  Tooltip
 } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
-  GridRenderEditCellParams,
+  GridRenderEditCellParams
 } from "@mui/x-data-grid";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isUndefined } from "lodash";
@@ -22,7 +22,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useState,
+  useState
 } from "react";
 import {
   ALL_STORES,
@@ -30,14 +30,14 @@ import {
   ICON_COL_PROPS,
   PALETTE,
   STORE_TO_NAME,
-  voidFn,
+  voidFn
 } from "../../consts";
 import * as svc from "../../protos/turbotin-Notifications_connectquery";
 import { getNotifications } from "../../protos/turbotin-Notifications_connectquery";
 import { Notification, Store, Tag } from "../../protos/turbotin_pb";
+import { formatUSD } from "../../util";
 import BlendSelect from "../../util/components/blendSelect";
 import { useTags } from "../../util/tags";
-import { formatUSD } from "../../util";
 
 const getStores = (row: PlainMessage<Notification>): Store[] => {
   const str = row.stores.length > 0 ? row.stores : JSON.stringify([]);
@@ -91,8 +91,12 @@ const Notifications = (): JSX.Element => {
     void queryClient.invalidateQueries({
       queryKey: getNotifications.getQueryKey(),
     });
-  const { mutateAsync: setNotifications, isLoading: isSaving } = useMutation({
-    ...svc.setNotifications.useMutation(),
+  const { mutateAsync: createNotification, isLoading: isCreating } = useMutation({
+    ...svc.createNotification.useMutation(),
+    onSettled,
+  });
+  const { mutateAsync: updateNotification, isLoading: isUpdating } = useMutation({
+    ...svc.updateNotification.useMutation(),
     onSettled,
   });
   const { mutateAsync: deleteNotifications, isLoading: isDeleting } =
@@ -151,8 +155,9 @@ const Notifications = (): JSX.Element => {
             >
               <IconButton
                 onClick={() =>
-                  void setNotifications({
-                    items: [{ ...row, excludeStores: !row.excludeStores }],
+                  void updateNotification({
+                    ...row,
+                     excludeStores: !row.excludeStores ,
                   })
                 }
               >
@@ -186,7 +191,7 @@ const Notifications = (): JSX.Element => {
         ...ICON_COL_PROPS,
       },
     ],
-    [setNotifications, deleteNotifications]
+    [updateNotification, deleteNotifications]
   );
 
   return (
@@ -228,8 +233,7 @@ const Notifications = (): JSX.Element => {
                 disabled={isUndefined(tag) || isInvalid}
                 onClick={async () => {
                   if (!isUndefined(tag)) {
-                    await setNotifications({
-                      items: [new Notification({ tagId: tag.id })],
+                    await createNotification({tagId: tag.id 
                     });
                     setTag(undefined);
                   }
@@ -245,9 +249,9 @@ const Notifications = (): JSX.Element => {
           columns={columns}
           sx={{ backgroundColor: PALETTE.background.paper, m: 1 }}
           autoHeight
-          loading={isFetching || isSaving || isDeleting}
+          loading={isFetching || isCreating || isUpdating || isDeleting}
           processRowUpdate={async (newRow) => {
-            await setNotifications({ items: [newRow] }).catch(voidFn);
+            await updateNotification(newRow).catch(voidFn);
             return newRow;
           }}
         />

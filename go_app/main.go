@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	STATIC_DIR = path.Clean("../react_app/build")
+	STATIC_DIR = path.Clean("./build")
 	INDEX_FILE = path.Clean(path.Join(STATIC_DIR, "/index.html"))
 )
 
@@ -65,7 +65,7 @@ func fileHandler(h http.Handler) http.Handler {
 
 func main() {
 	util.InitEnv()
-	util.InitGorm()
+	util.InitEnt()
 
 	opts := connect.WithInterceptors(util.LOG_INTERCEPTOR, util.AUTH_INTERCEPTOR)
 

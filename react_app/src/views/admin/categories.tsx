@@ -5,7 +5,7 @@ import {
   IconButton,
   Switch,
   TextField,
-  Tooltip,
+  Tooltip
 } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,7 +14,7 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import { EMPTY_ARR, ICON_COL_PROPS, PALETTE, voidFn } from "../../consts";
 import * as admin from "../../protos/turbotin-Admin_connectquery";
 import { getCategories } from "../../protos/turbotin-Public_connectquery";
-import { Category, CategoryList } from "../../protos/turbotin_pb";
+import { Category } from "../../protos/turbotin_pb";
 import LoadingIcon from "../../util/components/loadingIcon";
 
 const Categories = (): JSX.Element => {
@@ -26,13 +26,13 @@ const Categories = (): JSX.Element => {
     void queryClient.invalidateQueries({
       queryKey: getCategories.getQueryKey(),
     });
-  const { mutateAsync: setCats, isLoading: isSaving } = useMutation({
-    ...admin.setCategories.useMutation(),
+  const { mutateAsync: updateCategory, isLoading: isSaving } = useMutation({
+    ...admin.updateCategory.useMutation(),
     onSettled,
   });
 
-  const { mutateAsync: deleteCats } = useMutation({
-    ...admin.deleteCategories.useMutation(),
+  const { mutateAsync: deleteCategory } = useMutation({
+    ...admin.deleteCategory.useMutation(),
     onSettled,
   });
 
@@ -45,9 +45,9 @@ const Categories = (): JSX.Element => {
     if (isUndefined(el)) return;
     const value = el.value;
     if (value.length === 0) return;
-    await setCats(new CategoryList({ items: [new Category({ name: value })] }));
+    await updateCategory({ name: value });
     el.value = "";
-  }, [setCats]);
+  }, [updateCategory]);
 
   const columns = useMemo(
     (): Array<GridColDef<Category>> => [
@@ -64,7 +64,7 @@ const Categories = (): JSX.Element => {
           <Tooltip title={"Delete category"}>
             <IconButton
               onClick={async () => {
-                await deleteCats({ items: [row] });
+                await deleteCategory(row);
                 setDeleting(false);
               }}
             >
@@ -75,7 +75,7 @@ const Categories = (): JSX.Element => {
         ...ICON_COL_PROPS,
       },
     ],
-    [deleteCats]
+    [deleteCategory]
   );
 
   return (
@@ -120,7 +120,7 @@ const Categories = (): JSX.Element => {
           columns={columns}
           sx={{ backgroundColor: PALETTE.background.paper }}
           processRowUpdate={async (newRow) => {
-            await setCats(new CategoryList({ items: [newRow] })).catch(voidFn);
+            await updateCategory(newRow).catch(voidFn);
             return newRow;
           }}
           columnVisibilityModel={{ deleting }}

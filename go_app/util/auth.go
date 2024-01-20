@@ -12,14 +12,16 @@ import (
 	"regexp"
 	"strings"
 	"time"
-	"turbotin/models"
+	"turbotin/ent"
+	_ "turbotin/ent"
+	"turbotin/ent/user"
+
 	. "turbotin/protos/protosconnect"
 
 	. "connectrpc.com/connect"
 	"github.com/golang-jwt/jwt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"gorm.io/gorm"
 )
 
 const (
@@ -50,18 +52,17 @@ func GetEmail(ctx context.Context) (string, bool) {
 	return email.(string), true
 }
 
-func GetUser[T any](ctx context.Context) (models.User, *Response[T], error) {
+func GetUser[T any](ctx context.Context) (ent.User, *Response[T], error) {
 	email, ok := GetEmail(ctx)
 	if !ok {
 		resp, err := FlashError[T]("Not logged in", CodePermissionDenied)
-		return models.User{}, resp, err
+		return ent.User{}, resp, err
 	}
-	var user models.User
-	DB.Where(&models.User{Email: email}).First(&user)
-	if errors.Is(DB.Error, gorm.ErrRecordNotFound) {
-		return models.User{}, DeleteEmail[T](), NewError(CodeNotFound, errors.New("User not found"))
+	user, err := DB.User.Query().Where(user.EmailEQ(email)).First(ctx)
+	if err != nil {
+		return ent.User{}, DeleteEmail[T](), NewError(CodeNotFound, errors.New("User not found"))
 	}
-	return user, nil, nil
+	return *user, nil, nil
 }
 
 func SetEmail(resp AnyResponse, email string, remember bool) error {
@@ -154,8 +155,7 @@ var AUTH_INTERCEPTOR = UnaryInterceptorFunc(func(next UnaryFunc) UnaryFunc {
 		}
 
 		if authenticated && method[1:len(AdminName)+1] == AdminName {
-			user := models.User{}
-			DB.Where("email = ?", email).Find(&user)
+			user := DB.User.Query().Where(user.EmailEQ(email)).FirstX(ctx)
 			authenticated = user.IsAdmin
 		}
 

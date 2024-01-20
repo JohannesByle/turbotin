@@ -7,13 +7,13 @@ import React, { useMemo } from "react";
 import { ICON_COL_PROPS, PALETTE } from "../../../consts";
 import * as admin from "../../../protos/turbotin-Admin_connectquery";
 import {
-  getTagToTags,
   getTags,
+  getTagToTags,
 } from "../../../protos/turbotin-Public_connectquery";
 import { Category, Tag, TagToTag } from "../../../protos/turbotin_pb";
 import { TSetState } from "../../../util";
 import TagEditCell from "../editCell";
-import { NULL_CAT, TRow, getChildren, getValidCats } from "./util";
+import { getChildren, getValidCats, NULL_CAT, TRow } from "./util";
 
 type TProps = {
   cat: Category;
@@ -67,20 +67,30 @@ const TagGrid = (props: TProps): JSX.Element => {
   const catValues = useMemo(() => groupBy(tags, (t) => t.categoryId), [tags]);
   const queryClient = useQueryClient();
 
-  const { mutateAsync: setTagToTags } = useMutation({
-    ...admin.setTagToTags.useMutation(),
+  const onTagToTagsSettled = (): void =>
+    void queryClient.invalidateQueries({
+      queryKey: getTagToTags.getQueryKey(),
+    });
+  const { mutateAsync: updateTagToTag } = useMutation({
+    ...admin.updateTagToTag.useMutation(),
+    onSettled: onTagToTagsSettled,
   });
-  const onSettled = (): void =>
+  const { mutateAsync: createTagToTag } = useMutation({
+    ...admin.createTagToTag.useMutation(),
+    onSettled: onTagToTagsSettled,
+  });
+
+  const onTagsSettled = (): void =>
     void queryClient.invalidateQueries({
       queryKey: getTags.getQueryKey(),
     });
-  const { mutateAsync: setTags } = useMutation({
-    ...admin.setTags.useMutation(),
-    onSettled,
+  const { mutateAsync: updateTag } = useMutation({
+    ...admin.updateTag.useMutation(),
+    onSettled: onTagsSettled,
   });
-  const { mutateAsync: deleteTags } = useMutation({
-    ...admin.deleteTags.useMutation(),
-    onSettled,
+  const { mutateAsync: deleteTag } = useMutation({
+    ...admin.deleteTag.useMutation(),
+    onSettled: onTagsSettled,
   });
 
   const children = getChildren(cat, catMap, tagMap, links);
@@ -125,7 +135,7 @@ const TagGrid = (props: TProps): JSX.Element => {
           <Tooltip title={"Delete category"}>
             <IconButton
               onClick={async () => {
-                await deleteTags({ items: [row] });
+                await deleteTag(row);
                 setDeleting(false);
               }}
             >
@@ -136,16 +146,7 @@ const TagGrid = (props: TProps): JSX.Element => {
         ...ICON_COL_PROPS,
       });
     return result;
-  }, [
-    cat,
-    catMap,
-    tagMap,
-    links,
-    deleting,
-    catValues,
-    deleteTags,
-    setDeleting,
-  ]);
+  }, [cat, catMap, tagMap, links, deleting, catValues, deleteTag, setDeleting]);
 
   return (
     <DataGrid
@@ -170,32 +171,23 @@ const TagGrid = (props: TProps): JSX.Element => {
         for (const [k_, v] of toPairs(newRow)) {
           const k = parseInt(k_);
           if (!isFinite(k) || v === oldRow[k]) continue;
-          if (k === cat.id) {
-            try {
-              await setTags({ items: [v] });
-
-              return newRow;
-            } catch {
-              return oldRow;
+          try {
+            if (k === cat.id) {
+              await updateTag(v);
+            } else if (isUndefined(oldRow[k])) {
+              await createTagToTag({ parentTagId: id, tagId: newRow[k].id });
+            } else {
+              const link = links.find(
+                (l) => l.tagId === oldRow[k].id && l.parentTagId === id
+              );
+              if (isUndefined(link)) return oldRow;
+              const newLink = link.clone();
+              newLink.tagId = v.id;
+              await updateTagToTag(newLink);
             }
-          } else {
-            const link = isUndefined(oldRow[k])
-              ? new TagToTag({ parentTagId: id, tagId: newRow[k].id })
-              : links.find(
-                  (l) => l.tagId === oldRow[k].id && l.parentTagId === id
-                );
-            if (isUndefined(link)) return oldRow;
-            const newLink = link.clone();
-            newLink.tagId = v.id;
-            try {
-              await setTagToTags({ items: [newLink] });
-              await queryClient.invalidateQueries({
-                queryKey: getTagToTags.getQueryKey(),
-              });
-              return newRow;
-            } catch {
-              return oldRow;
-            }
+            return newRow;
+          } catch {
+            return oldRow;
           }
         }
         return oldRow;

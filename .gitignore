@@ -28,7 +28,7 @@
 /flask_app/static/bootstrap/
 /archive.csv
 /flask_app/secret_key.json
-/react_app/build
+/go_app/build
 /**/node_modules/
 /**/.venv/
 /react_app/src/service/
@@ -39,3 +39,7 @@
 *.env
 /go_app/protos/
 /react_app/src/protos/
+/go_app/azure_deploy.sh
+/go_app/ent/*
+!/go_app/ent/schema/
+!/go_app/ent/generate.go

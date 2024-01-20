@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+	"log"
 	pb "turbotin/protos"
 
 	. "connectrpc.com/connect"
@@ -23,7 +24,8 @@ func FlashError[T any](msg string, c Code) (*Response[T], error) {
 	return resp, NewError(c, errors.New(msg))
 }
 
-func InternalError[T any]() (*Response[T], error) {
+func InternalError[T any](err error) (*Response[T], error) {
+	log.Println(err)
 	return FlashError[T]("Internal error", CodeInternal)
 }
 

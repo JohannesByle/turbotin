@@ -2,6 +2,7 @@ const CompressionPlugin = require("compression-webpack-plugin");
 const zlib = require("zlib");
 const { merge } = require("webpack-merge");
 const common = require("./webpack.common.js");
+const path = require("path");
 
 const { BROTLI_MAX_QUALITY, BROTLI_PARAM_QUALITY } = zlib.constants;
 
@@ -18,4 +19,7 @@ module.exports = merge(common, {
       },
     }),
   ],
+  output: {
+    path: path.resolve(__dirname, "/build"),
+  },
 });

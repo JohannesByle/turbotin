@@ -2,17 +2,18 @@ package services
 
 import (
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
-	"time"
-	"turbotin/models"
+	"turbotin/ent"
+	"turbotin/ent/tobacco"
+	"turbotin/ent/tobaccoprice"
 	pb "turbotin/protos"
+
 	. "turbotin/util"
 
-	jet "turbotin/gen/turbotin/table"
-
 	. "connectrpc.com/connect"
-	. "github.com/go-jet/jet/v2/mysql"
+	"entgo.io/ent/dialect/sql"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"golang.org/x/net/context"
@@ -27,106 +28,79 @@ func inStock(str string) bool {
 }
 
 func (s *Public) TodaysTobaccos(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.ObsTobaccoList], error) {
-	var prices = jet.TobaccoPrices
 
-	type Row struct {
-		TobaccoID int
-		Price     string
-		Stock     string
-		Time      time.Time
-		Store     int32
-		Item      string
-		Link      string
-	}
-
-	isLatestDay := func(t *jet.TobaccoPricesTable) BoolExpression {
-		return t.Time.GT(TimestampExp(SelectStatement(SELECT(DateExp(MAX(t.Time)).ADD(INTERVAL(-1, DAY))).FROM(t))))
-	}
-
-	t1 := prices.AS("t1")
-	t2 := SELECT(
-		prices.TobaccoID.AS(prices.TobaccoID.Name()),
-		MAX(prices.Time).AS(prices.Time.Name())).
-		FROM(prices).
-		WHERE(isLatestDay(prices)).
-		GROUP_BY(prices.TobaccoID).AsTable("t2")
-
-	stmt, _ := SELECT(
-		t1.TobaccoID.AS(t1.TobaccoID.Name()),
-		MAX(t1.Price).AS(t1.Price.Name()),
-		MAX(t1.Stock).AS(t1.Stock.Name()),
-		MAX(t1.Time).AS(t1.Time.Name()),
-		MAX(jet.Tobaccos.Item).AS(jet.Tobaccos.Item.Name()),
-		MAX(jet.Tobaccos.Link).AS(jet.Tobaccos.Link.Name()),
-		MAX(jet.Tobaccos.Store).AS(jet.Tobaccos.Store.Name())).
-		FROM(t1.
-			INNER_JOIN(t2,
-				t1.TobaccoID.EQ(IntegerColumn(t1.TobaccoID.Name()).From(t2)).
-					AND(t1.Time.EQ(DateTimeColumn(t1.Time.Name()).From(t2)))).
-			LEFT_JOIN(jet.Tobaccos, jet.Tobaccos.ID.EQ(t1.TobaccoID))).
-		WHERE(isLatestDay(t1)).
-		GROUP_BY(t1.TobaccoID).Sql()
-
-	rows, err := DB.Raw(stmt).Rows()
+	rows, err := DB.TobaccoPrice.Query().
+		Where(func(s *sql.Selector) {
+			t := sql.Table(tobaccoprice.Table)
+			s.Where(sql.GTE(tobaccoprice.FieldTime, sql.
+				SelectExpr(sql.ExprFunc(func(b *sql.Builder) {
+					b.WriteString(sql.Max(t.C(tobaccoprice.FieldTime)))
+					b.WriteOp(sql.OpSub)
+					b.WriteString(" INTERVAL 4 HOUR")
+				})).
+				From(t)))
+		}).WithTobacco().All(ctx)
 	if err != nil {
-		return nil, err
+		return InternalError[pb.ObsTobaccoList](err)
 	}
-	defer rows.Close()
 
-	items := []*pb.ObsTobacco{}
-	for rows.Next() {
-		row := Row{}
-		DB.ScanRows(rows, &row)
-
-		items = append(items, &pb.ObsTobacco{
-			TobaccoId: uint32(row.TobaccoID),
-			Item:      row.Item,
-			Store:     pb.Store(row.Store),
-			Link:      row.Link,
+	resp := &pb.ObsTobaccoList{Items: []*pb.ObsTobacco{}}
+	for _, row := range rows {
+		t := row.Edges.Tobacco
+		resp.Items = append(resp.Items, &pb.ObsTobacco{
+			Item:      t.Item,
+			Store:     pb.Store(t.Store),
+			Link:      t.Link,
 			PriceStr:  row.Price,
 			Time:      timestamppb.New(row.Time),
 			InStock:   inStock(row.Stock),
+			TobaccoId: int32(t.ID),
 		})
 	}
-
-	return NewResponse(&pb.ObsTobaccoList{Items: items}), nil
+	return NewResponse(resp), err
 }
 
 func (s *Public) GetTobaccoToTags(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.TobaccoToTagList], error) {
-	tags := []*models.TobaccoToTag{}
-	DB.Find(&tags)
+	tags, err := DB.TobaccoToTag.Query().WithTag().WithTobacco().All(ctx)
+	if err != nil {
+		return InternalError[pb.TobaccoToTagList](err)
+	}
 	resp := &pb.TobaccoToTagList{Items: []*pb.TobaccoToTag{}}
 	for _, tag := range tags {
 		resp.Items = append(resp.Items, &pb.TobaccoToTag{
-			Id:        uint32(tag.ID),
-			TagId:     uint32(tag.TagId),
-			TobaccoId: uint32(tag.TobaccoId),
+			Id:        int32(tag.ID),
+			TagId:     int32(tag.Edges.Tag.ID),
+			TobaccoId: int32(tag.Edges.Tobacco.ID),
 		})
 	}
 	return NewResponse(resp), nil
 }
 
 func (s *Public) GetTagToTags(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.TagToTagList], error) {
-	tags := []*models.TagToTag{}
-	DB.Find(&tags)
+	tags, err := DB.TagToTag.Query().WithParentTag().WithTag().All(ctx)
+	if err != nil {
+		return InternalError[pb.TagToTagList](err)
+	}
 	resp := &pb.TagToTagList{Items: []*pb.TagToTag{}}
 	for _, tag := range tags {
 		resp.Items = append(resp.Items, &pb.TagToTag{
-			Id:          uint32(tag.ID),
-			TagId:       uint32(tag.TagId),
-			ParentTagId: uint32(tag.ParentTagId),
+			Id:          int32(tag.ID),
+			TagId:       int32(tag.Edges.Tag.ID),
+			ParentTagId: int32(tag.Edges.ParentTag.ID),
 		})
 	}
 	return NewResponse(resp), nil
 }
 
 func (s *Public) GetTobaccos(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.TobaccoList], error) {
-	rows := []*models.Tobacco{}
-	DB.Find(&rows)
+	rows, err := DB.Tobacco.Query().All(ctx)
+	if err != nil {
+		return InternalError[pb.TobaccoList](err)
+	}
 	resp := &pb.TobaccoList{Items: []*pb.Tobacco{}}
 	for _, row := range rows {
 		resp.Items = append(resp.Items, &pb.Tobacco{
-			Id:    uint32(row.ID),
+			Id:    int32(row.ID),
 			Item:  row.Item,
 			Store: pb.Store(row.Store),
 			Link:  row.Link,
@@ -136,26 +110,30 @@ func (s *Public) GetTobaccos(ctx context.Context, req *Request[pb.EmptyArgs]) (*
 }
 
 func (s *Public) GetTags(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.TagList], error) {
-	tags := []*models.Tag{}
-	DB.Find(&tags)
+	tags, err := DB.Tag.Query().WithCategory().All(ctx)
+	if err != nil {
+		return InternalError[pb.TagList](err)
+	}
 	resp := &pb.TagList{Items: []*pb.Tag{}}
 	for _, tag := range tags {
 		resp.Items = append(resp.Items, &pb.Tag{
-			Id:         uint32(tag.ID),
+			Id:         int32(tag.ID),
 			Value:      tag.Value,
-			CategoryId: uint32(tag.CategoryId),
+			CategoryId: int32(tag.Edges.Category.ID),
 		})
 	}
 	return NewResponse(resp), nil
 }
 
 func (s *Public) GetCategories(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.CategoryList], error) {
-	cats := []*models.Category{}
-	DB.Find(&cats)
+	cats, err := DB.Category.Query().All(ctx)
+	if err != nil {
+		return InternalError[pb.CategoryList](err)
+	}
 	resp := &pb.CategoryList{Items: []*pb.Category{}}
 	for _, cat := range cats {
 		resp.Items = append(resp.Items, &pb.Category{
-			Id:   uint32(cat.ID),
+			Id:   int32(cat.ID),
 			Name: cat.Name,
 		})
 	}
@@ -165,19 +143,19 @@ func (s *Public) GetCategories(ctx context.Context, req *Request[pb.EmptyArgs]) 
 func (s *Public) GetAllTagData(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.AllTagData], error) {
 	links, err := s.GetTobaccoToTags(ctx, req)
 	if err != nil {
-		return nil, err
+		return InternalError[pb.AllTagData](err)
 	}
 	tagLinks, err := s.GetTagToTags(ctx, req)
 	if err != nil {
-		return nil, err
+		return InternalError[pb.AllTagData](err)
 	}
 	tags, err := s.GetTags(ctx, req)
 	if err != nil {
-		return nil, err
+		return InternalError[pb.AllTagData](err)
 	}
 	cats, err := s.GetCategories(ctx, req)
 	if err != nil {
-		return nil, err
+		return InternalError[pb.AllTagData](err)
 	}
 	resp := &pb.AllTagData{
 		Links:    links.Msg.Items,
@@ -188,30 +166,34 @@ func (s *Public) GetAllTagData(ctx context.Context, req *Request[pb.EmptyArgs]) 
 }
 
 func (s *Public) GetTobaccoPrices(ctx context.Context, req *Request[pb.IntegerList]) (*Response[pb.TobaccoPrices], error) {
-
-	allPrices := []*models.TobaccoPrice{}
-
-	DB.Where("tobacco_id in ?", req.Msg.Items).Find(&allPrices)
-	if DB.Error != nil {
-		return InternalError[pb.TobaccoPrices]()
+	ids := []int{}
+	for _, id := range req.Msg.Items {
+		ids = append(ids, int(id))
+	}
+	tobaccos, err := DB.Tobacco.Query().Where(tobacco.IDIn(ids...)).WithPrices().All(ctx)
+	if err != nil {
+		return InternalError[pb.TobaccoPrices](err)
 	}
 	prices := make([]*pb.TobaccoPriceList, len(req.Msg.Items))
 	for i := range req.Msg.Items {
 		prices[i] = &pb.TobaccoPriceList{Items: []*pb.TobaccoPrice{}}
-	}
-	for _, row := range allPrices {
-		for i, id := range req.Msg.Items {
-			if id == uint32(row.TobaccoId) {
-				price, err := strconv.ParseFloat(NUMBER_REGEX.FindString(row.Price), 64)
-				if err != nil {
-					continue
-				}
-				prices[i].Items = append(prices[i].Items, &pb.TobaccoPrice{
-					Price:   price,
-					Time:    timestamppb.New(row.Time),
-					InStock: inStock(row.Stock)})
-			}
+		j := slices.IndexFunc(tobaccos, func(t *ent.Tobacco) bool {
+			return t.ID == int(req.Msg.Items[i])
+		})
+		if j < 0 {
+			continue
 		}
+		for _, price := range tobaccos[j].Edges.Prices {
+			num, err := strconv.ParseFloat(NUMBER_REGEX.FindString(price.Price), 64)
+			if err != nil {
+				continue
+			}
+			prices[i].Items = append(prices[i].Items, &pb.TobaccoPrice{
+				Price:   num,
+				Time:    timestamppb.New(price.Time),
+				InStock: inStock(price.Stock)})
+		}
+
 	}
 	return NewResponse(&pb.TobaccoPrices{Items: prices}), nil
 }

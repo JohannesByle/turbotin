@@ -1,21 +1,20 @@
 package util
 
 import (
-	"database/sql"
+	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/smtp"
 	"time"
-	. "turbotin/models"
+	"turbotin/ent"
+	. "turbotin/ent"
 )
 
-const EMAIL_TIME_LIMIT = time.Duration(0) * time.Minute
+const EMAIL_TIME_LIMIT = time.Duration(10) * time.Minute
 
-func SendEmail(user User, subject, msg string) error {
+func SendEmail(ctx context.Context, tx *ent.Tx, user *User, subject, msg string) error {
 	to := user.Email
-
-	if !IsAfter(user.LastEmailTime.Time, EMAIL_TIME_LIMIT) {
+	if !IsAfter(user.LastEmailTime, EMAIL_TIME_LIMIT) {
 		return errors.New(fmt.Sprintf("Can only send emails once every %.0f min", EMAIL_TIME_LIMIT.Minutes()))
 	}
 
@@ -30,9 +29,9 @@ func SendEmail(user User, subject, msg string) error {
 	auth := smtp.PlainAuth("", from, password, smtpHost)
 	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{to}, message)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	user.LastEmailTime = sql.NullTime{Time: time.Now(), Valid: true}
-	DB.Save(user)
-	return nil
+	_, err = tx.User.UpdateOneID(user.ID).SetLastEmailTime(time.Now()).Save(ctx)
+	return err
+
 }

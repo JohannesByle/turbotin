@@ -1,47 +1,51 @@
 package util
 
 import (
+	"context"
+	"fmt"
 	"log"
-	"os"
-	"time"
-
-	"turbotin/models"
-
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	"turbotin/ent"
+	"turbotin/ent/migrate"
 )
 
-var DB *gorm.DB
+var DB *ent.Client
 
-func InitGorm() {
+func InitEnt() {
 	var err error
+	DB, err = ent.Open("mysql", DB_STR)
 
-	DB, err = gorm.Open(mysql.Open(DB_STR), &gorm.Config{
-		Logger: logger.New(
-			log.New(os.Stdout, "\r\n", log.LstdFlags),
-			logger.Config{
-				SlowThreshold:             time.Second,
-				LogLevel:                  logger.Error,
-				Colorful:                  true,
-				IgnoreRecordNotFoundError: false,
-				ParameterizedQueries:      true,
-			},
-		),
-		PrepareStmt:            true,
-		SkipDefaultTransaction: true,
-	})
 	if err != nil {
 		log.Fatalf("failed to connect to db: %v", err)
 	}
-	DB.AutoMigrate(
-		&models.User{},
-		&models.Tobacco{},
-		&models.TobaccoPrice{},
-		&models.Category{},
-		&models.Tag{},
-		&models.TagToTag{},
-		&models.TobaccoToTag{},
-		&models.Notification{})
-	log.Printf("gorm initialized")
+	ctx := context.Background()
+	err = DB.Schema.Create(ctx,
+		migrate.WithDropIndex(true),
+		migrate.WithDropColumn(true))
+	if err != nil {
+		log.Fatalf("failed creating schema resources: %v", err)
+	}
+	log.Println("ent intitialized")
+}
+
+func WithTx(ctx context.Context, client *ent.Client, fn func(tx *ent.Tx) error) error {
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if v := recover(); v != nil {
+			tx.Rollback()
+			panic(v)
+		}
+	}()
+	if err := fn(tx); err != nil {
+		if rerr := tx.Rollback(); rerr != nil {
+			err = fmt.Errorf("%w: rolling back transaction: %v", err, rerr)
+		}
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction: %w", err)
+	}
+	return nil
 }

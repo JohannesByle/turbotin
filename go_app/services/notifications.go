@@ -1,14 +1,13 @@
 package services
 
 import (
-	"database/sql"
-	"turbotin/models"
+	"turbotin/ent/notification"
+	userSql "turbotin/ent/user"
 	pb "turbotin/protos"
 	"turbotin/util"
 	. "turbotin/util"
 
 	. "connectrpc.com/connect"
-	"gorm.io/gorm"
 
 	"golang.org/x/net/context"
 )
@@ -16,18 +15,24 @@ import (
 type Notifications struct{}
 
 func (s *Notifications) GetNotifications(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.NotificationList], error) {
-	user, r, err := util.GetUser[pb.NotificationList](ctx)
+	user, r, err := GetUser[pb.NotificationList](ctx)
 	if err != nil {
 		return r, err
 	}
-	notifications := []*models.Notification{}
-	DB.Where("user_id = ?", user.ID).Find(&notifications)
+	notifications, err := DB.Notification.
+		Query().
+		Where(notification.HasUserWith(userSql.IDEQ(user.ID))).
+		WithTag().
+		All(ctx)
+	if err != nil {
+		return InternalError[pb.NotificationList](err)
+	}
 	resp := &pb.NotificationList{Items: []*pb.Notification{}}
 	for _, notification := range notifications {
 		resp.Items = append(resp.Items, &pb.Notification{
-			Id:            uint32(notification.ID),
-			TagId:         uint32(notification.TagId),
-			MaxPrice:      uint32(notification.MaxPrice.Int16),
+			Id:            int32(notification.ID),
+			TagId:         int32(notification.Edges.Tag.ID),
+			MaxPrice:      int32(notification.MaxPrice),
 			Stores:        notification.Stores,
 			ExcludeStores: notification.ExcludeStores,
 		})
@@ -35,26 +40,38 @@ func (s *Notifications) GetNotifications(ctx context.Context, req *Request[pb.Em
 	return NewResponse(resp), nil
 }
 
-func (s *Notifications) SetNotifications(ctx context.Context, req *Request[pb.NotificationList]) (*Response[pb.EmptyResponse], error) {
+func (s *Notifications) UpdateNotification(ctx context.Context, req *Request[pb.Notification]) (*Response[pb.EmptyResponse], error) {
 	user, r, err := util.GetUser[pb.EmptyResponse](ctx)
 	if err != nil {
 		return r, err
 	}
-	notifications := []*models.Notification{}
-	for _, notification := range req.Msg.Items {
-		notifications = append(notifications, &models.Notification{
-			UserId:        uint(user.ID),
-			TagId:         uint(notification.TagId),
-			MaxPrice:      sql.NullInt16{Valid: notification.MaxPrice > 0, Int16: int16(notification.MaxPrice)},
-			Stores:        notification.Stores,
-			ExcludeStores: notification.ExcludeStores,
-			Model:         gorm.Model{ID: uint(notification.Id)},
-		})
+	n := req.Msg
+	_, err = DB.Notification.UpdateOneID(int(n.Id)).
+		SetUserID(user.ID).
+		SetTagID(int(n.TagId)).
+		SetMaxPrice(int16(n.MaxPrice)).
+		SetStores(n.Stores).
+		SetExcludeStores(n.ExcludeStores).Save(ctx)
+	if err != nil {
+		return InternalError[pb.EmptyResponse](err)
 	}
+	return NewResponse[pb.EmptyResponse](nil), nil
+}
 
-	DB.Save(&notifications)
-	if DB.Error != nil {
-		return InternalError[pb.EmptyResponse]()
+func (s *Notifications) CreateNotification(ctx context.Context, req *Request[pb.Notification]) (*Response[pb.EmptyResponse], error) {
+	user, r, err := util.GetUser[pb.EmptyResponse](ctx)
+	if err != nil {
+		return r, err
+	}
+	n := req.Msg
+	_, err = DB.Notification.Create().
+		SetUserID(user.ID).
+		SetTagID(int(n.TagId)).
+		SetMaxPrice(int16(n.MaxPrice)).
+		SetStores(n.Stores).
+		SetExcludeStores(n.ExcludeStores).Save(ctx)
+	if err != nil {
+		return InternalError[pb.EmptyResponse](err)
 	}
 	return NewResponse[pb.EmptyResponse](nil), nil
 }
@@ -64,9 +81,12 @@ func (s *Notifications) DeleteNotifications(ctx context.Context, req *Request[pb
 	if err != nil {
 		return r, err
 	}
-	DB.Unscoped().Where("user_id = ? AND id IN ?", user.ID, req.Msg.Items).Delete(&models.Notification{})
-	if DB.Error != nil {
-		return InternalError[pb.EmptyResponse]()
+	ids := []int{}
+	for _, id := range req.Msg.Items {
+		ids = append(ids, int(id))
 	}
+	_, err = DB.Notification.Delete().
+		Where(notification.HasUserWith(userSql.IDEQ(user.ID)), notification.IDIn(ids...)).
+		Exec(ctx)
 	return NewResponse[pb.EmptyResponse](nil), nil
 }

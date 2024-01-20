@@ -53,8 +53,8 @@ const TobaccoLinksGrid = (props: TProps): JSX.Element => {
 
   const catValues = useMemo(() => groupBy(tags, (t) => t.categoryId), [tags]);
 
-  const { mutateAsync: setTobaccoToTags } = useMutation(
-    admin.setTobaccoToTags.useMutation()
+  const { mutateAsync: updateTobaccoToTag } = useMutation(
+    admin.updateTobaccoToTag.useMutation()
   );
 
   const queryClient = useQueryClient();
@@ -129,7 +129,7 @@ const TobaccoLinksGrid = (props: TProps): JSX.Element => {
           const newLink = link.clone();
           newLink.tagId = v.id;
           try {
-            await setTobaccoToTags({ items: [newLink] });
+            await updateTobaccoToTag(newLink);
             await queryClient.invalidateQueries({
               queryKey: getTobaccoToTags.getQueryKey(),
             });

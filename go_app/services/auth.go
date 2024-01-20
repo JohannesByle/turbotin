@@ -1,11 +1,10 @@
 package services
 
 import (
-	"database/sql"
 	"fmt"
-	"log"
 	"time"
-	"turbotin/models"
+	"turbotin/ent"
+	"turbotin/ent/user"
 	pb "turbotin/protos"
 	. "turbotin/util"
 
@@ -43,34 +42,34 @@ func (s *Auth) SignUp(ctx context.Context, req *Request[pb.AuthArgs]) (*Response
 		return FlashError[pb.EmptyResponse]("Password is too short", CodeInvalidArgument)
 	}
 
-	var user models.User
-	DB.Where(&models.User{Email: in.Email}).First(&user)
-
-	if user.Email == in.Email {
-		return FlashError[pb.EmptyResponse]("An acount with that email already exists", CodeAlreadyExists)
+	user, err := DB.User.Query().Where(user.EmailEQ(in.Email)).First(ctx)
+	if !ent.IsNotFound(err) {
+		if err == nil {
+			return FlashError[pb.EmptyResponse]("An acount with that email already exists", CodeAlreadyExists)
+		} else {
+			return InternalError[pb.EmptyResponse](err)
+		}
 	}
-
-	user = models.User{
-		Email:         in.Email,
-		Password:      GeneratePasswordHash(in.Password),
-		EmailVerified: false,
-		EmailCode:     GenSalt(16),
-	}
-	log.Println(user.EmailCode)
-	err := DB.Save(&user).Error
+	err = WithTx(ctx, DB, func(tx *ent.Tx) error {
+		user, err = DB.User.Create().
+			SetEmail(in.Email).
+			SetPassword(GeneratePasswordHash(in.Password)).
+			SetEmailVerified(false).
+			SetEmailCode(GenSalt(64)).
+			Save(ctx)
+		if err != nil {
+			return err
+		}
+		if err = SetEmail(resp, user.Email, in.Remember); err != nil {
+			return err
+		}
+		subject := "Verify your email for your TurboTin.com account"
+		url := fmt.Sprintf("%s://%s/verify_email/%d/%s", SCHEME, HOST, user.ID, user.EmailCode)
+		body := fmt.Sprintf("Please verify your email address using this link: %s", url)
+		return SendEmail(ctx, tx, user, subject, body)
+	})
 	if err != nil {
-		return InternalError[pb.EmptyResponse]()
-	}
-	err = SetEmail(resp, user.Email, in.Remember)
-	if DB.Error != nil {
-		return InternalError[pb.EmptyResponse]()
-	}
-	subject := "Verify your email for your TurboTin.com account"
-	url := fmt.Sprintf("%s://%s/verify_email/%d/%s", SCHEME, HOST, user.ID, user.EmailCode)
-	body := fmt.Sprintf("Please verify your email address using this link: %s", url)
-	err = SendEmail(user, subject, body)
-	if err != nil {
-		return InternalError[pb.EmptyResponse]()
+		return FlashError[pb.EmptyResponse](err.Error(), CodeInternal)
 	}
 	Flash("Sign up successful", pb.Severity_SEVERITY_SUCCESS, resp)
 	return resp, nil
@@ -80,10 +79,8 @@ func (s *Auth) Login(ctx context.Context, req *Request[pb.AuthArgs]) (*Response[
 	in := req.Msg
 	resp := NewResponse(&pb.EmptyResponse{})
 
-	var user models.User
-	DB.Where(&models.User{Email: in.Email}).First(&user)
-	ok := CheckPasswordHash(in.Password, user.Password)
-	if user.Email != in.Email || !ok {
+	user, err := DB.User.Query().Where(user.EmailEQ(in.Email)).First(ctx)
+	if err != nil || user.Email != in.Email || !CheckPasswordHash(in.Password, user.Password) {
 		return FlashError[pb.EmptyResponse]("Email/password is incorrect", CodePermissionDenied)
 	}
 	SetEmail(resp, user.Email, in.Remember)
@@ -93,53 +90,55 @@ func (s *Auth) Login(ctx context.Context, req *Request[pb.AuthArgs]) (*Response[
 
 func (s *Auth) VerifyEmail(ctx context.Context, req *Request[pb.VerifyEmailArgs]) (*Response[pb.EmptyResponse], error) {
 	in := req.Msg
-
-	var user models.User
-	DB.First(&user, in.UserId)
-	if uint32(user.ID) != in.UserId || user.EmailCode != in.Code || user.EmailVerified {
+	user, err := DB.User.Query().Where(user.IDEQ(int(in.UserId))).First(ctx)
+	if err != nil || int32(user.ID) != in.UserId || user.EmailCode != in.Code || user.EmailVerified {
 		return FlashError[pb.EmptyResponse]("Unable to verify email", CodePermissionDenied)
 	}
 	user.EmailVerified = true
-	DB.Save(user)
-	if DB.Error != nil {
-		return InternalError[pb.EmptyResponse]()
+	_, err = DB.User.UpdateOneID(user.ID).SetEmailVerified(true).Save(ctx)
+	if err != nil {
+		return InternalError[pb.EmptyResponse](err)
 	}
 	return FlashSuccess("Email verified", pb.EmptyResponse{})
 }
 
 func (s *Auth) DeleteUser(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.EmptyResponse], error) {
-	user, resp, err := GetUser[pb.EmptyResponse](ctx)
+	user_, resp, err := GetUser[pb.EmptyResponse](ctx)
 	if err != nil {
 		return resp, err
 	}
-	DB.Delete(&user)
-	if DB.Error != nil {
-		return InternalError[pb.EmptyResponse]()
+	_, err = DB.User.Delete().Where(user.IDEQ(user_.ID)).Exec(ctx)
+	if err != nil {
+		return InternalError[pb.EmptyResponse](err)
 	}
 	return FlashSuccess("Account deleted", pb.EmptyResponse{})
 }
 
 func (s *Auth) SendPasswordResetCode(ctx context.Context, req *Request[pb.SendResetPasswordArgs]) (*Response[pb.EmptyResponse], error) {
+	const successMsg = "If the user exists a password reset code will be sent"
 	email := req.Msg.Email
-	var user models.User
-	DB.Where(&models.User{Email: email}).First(&user)
-	if DB.Error != nil {
-		return InternalError[pb.EmptyResponse]()
-	}
-	user.PasswordResetCode = GenSalt(16)
-	user.PasswordResetCreated = sql.NullTime{Time: time.Now(), Valid: true}
-	DB.Save(user)
-	if DB.Error != nil {
-		return InternalError[pb.EmptyResponse]()
-	}
-	subject := "Your password reset link for TurboTin.com"
-	url := fmt.Sprintf("%s://%s/change_password/%d/%s", SCHEME, HOST, user.ID, user.PasswordResetCode)
-	body := fmt.Sprintf("Reset your password here: %s", url)
-	err := SendEmail(user, subject, body)
+	user, err := DB.User.Query().Where(user.EmailEQ(email)).First(ctx)
 	if err != nil {
-		return nil, NewError(CodeInternal, err)
+		return FlashSuccess(successMsg, pb.EmptyResponse{})
 	}
-	return FlashSuccess("Password reset code sent", pb.EmptyResponse{})
+	err = WithTx(ctx, DB, func(tx *ent.Tx) error {
+		user, err := tx.User.UpdateOneID(user.ID).
+			SetPasswordResetCode(GenSalt(64)).
+			SetPasswordResetCodeCreated(time.Now()).
+			Save(ctx)
+		if err != nil {
+			return err
+		}
+		subject := "Your password reset link for TurboTin.com"
+		url := fmt.Sprintf("%s://%s/change_password/%d/%s", SCHEME, HOST, user.ID, user.PasswordResetCode)
+		body := fmt.Sprintf("Reset your password here: %s", url)
+		return SendEmail(ctx, tx, user, subject, body)
+
+	})
+	if err != nil {
+		return FlashError[pb.EmptyResponse](err.Error(), CodeInternal)
+	}
+	return FlashSuccess(successMsg, pb.EmptyResponse{})
 }
 
 func (s *Auth) ResetPassword(ctx context.Context, req *Request[pb.ResetPasswordArgs]) (*Response[pb.EmptyResponse], error) {
@@ -148,30 +147,31 @@ func (s *Auth) ResetPassword(ctx context.Context, req *Request[pb.ResetPasswordA
 		return FlashError[pb.EmptyResponse]("Password is too short", CodeInvalidArgument)
 	}
 
-	var user models.User
-	DB.First(&user, in.UserId)
-	if IsAfter(user.PasswordResetCreated.Time, PASSWORD_RESET_TIMEOUT) {
-		log.Println(user.PasswordResetCreated.Time)
+	user, err := DB.User.Query().Where(user.IDEQ(int(in.UserId))).First(ctx)
+	if err != nil || int32(user.ID) != in.UserId || user.PasswordResetCode != in.Code {
+		return InternalError[pb.EmptyResponse](err)
+	}
+	if IsAfter(user.PasswordResetCodeCreated, PASSWORD_RESET_TIMEOUT) {
 		return FlashError[pb.EmptyResponse]("Reset code expired", CodePermissionDenied)
 	}
-	if uint32(user.ID) != in.UserId || user.PasswordResetCode != in.Code {
-		return InternalError[pb.EmptyResponse]()
-	}
+
 	user.Password = GeneratePasswordHash(in.Password)
-	user.PasswordResetCode = GenSalt(16)
-	DB.Save(user)
-	if DB.Error != nil {
-		return InternalError[pb.EmptyResponse]()
+	user.PasswordResetCode = GenSalt(64)
+	_, err = DB.User.UpdateOneID(user.ID).
+		SetPassword(GeneratePasswordHash(in.Password)).
+		SetPasswordResetCode(GenSalt(64)).
+		Save(ctx)
+	if err != nil {
+		return InternalError[pb.EmptyResponse](err)
 	}
 	return FlashSuccess("Password reset", pb.EmptyResponse{})
 }
 
 func (s *Auth) GetEmail(ctx context.Context, req *Request[pb.ResetPasswordArgs]) (*Response[pb.Email], error) {
 	in := req.Msg
-	var user models.User
-	DB.First(&user, in.UserId)
-	if DB.Error != nil {
-		return InternalError[pb.Email]()
+	user, err := DB.User.Query().Where(user.IDEQ(int(in.UserId))).First(ctx)
+	if err != nil {
+		return InternalError[pb.Email](err)
 	}
 	return NewResponse(&pb.Email{Email: user.Email}), nil
 }
@@ -181,16 +181,15 @@ func (s *Auth) ChangePassword(ctx context.Context, req *Request[pb.ChangePasswor
 	if len(in.NewPassword) < MIN_PASSWORD_LEN {
 		return FlashError[pb.EmptyResponse]("Password is too short", CodeInvalidArgument)
 	}
-	var user models.User
-	DB.Where(&models.User{Email: in.Email}).First(&user)
+	user, err := DB.User.Query().Where(user.EmailEQ(in.Email)).First(ctx)
 	ok := CheckPasswordHash(in.OldPassword, user.Password)
-	if user.Email != in.Email || !ok {
+	if err != nil || user.Email != in.Email || !ok {
 		return FlashError[pb.EmptyResponse]("Password is incorrect", CodePermissionDenied)
 	}
-	user.Password = GeneratePasswordHash(in.NewPassword)
-	DB.Save(user)
-	if DB.Error != nil {
-		return InternalError[pb.EmptyResponse]()
+
+	_, err = DB.User.UpdateOneID(user.ID).SetPassword(GeneratePasswordHash(in.NewPassword)).Save(ctx)
+	if err != nil {
+		return InternalError[pb.EmptyResponse](err)
 	}
-	return NewResponse(&pb.EmptyResponse{}), nil
+	return FlashSuccess("Password changed", pb.EmptyResponse{})
 }
