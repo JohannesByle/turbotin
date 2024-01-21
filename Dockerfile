@@ -1,5 +1,9 @@
 # syntax=docker/dockerfile:1
 
+# This is the architecture you’re building for, which is passed in by the builder.
+# Placing it here allows the previous steps to be cached across architectures.
+ARG TARGETARCH
+
 # Comments are provided throughout this file to help you get started.
 # If you need more help, visit the Dockerfile reference guide at
 # https://docs.docker.com/go/dockerfile-reference/
@@ -9,49 +13,61 @@
 FROM node:lts-alpine AS build_node
 WORKDIR /src
 
+COPY /react_app .
+COPY buf.yaml ./buf.yaml
+COPY buf.gen-node.yaml ./buf.gen.yaml
+COPY /protos ./protos
+
 # Download dependencies as a separate step to take advantage of Docker's caching.
 # Leverage a cache mount to /root/.npm to speed up subsequent builds.
 # Leverage a bind mounts to package.json and package-lock.json to avoid having to copy them into
 # into this layer.
-RUN --mount=type=bind,source=/react_app/package.json,target=package.json \
-    --mount=type=bind,source=/react_app/package-lock.json,target=package-lock.json \
-    --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,target=/root/.npm \
     npm ci
 
-RUN --mount=type=bind,source=/react_app/package.json,target=package.json \
-    --mount=type=bind,source=/react_app/package-lock.json,target=package-lock.json \
-    --mount=type=bind,source=/react_app/webpack.prod.js,target=webpack.prod.js \
-    --mount=type=bind,source=/react_app/webpack.common.js,target=webpack.common.js \
-    --mount=type=bind,source=/react_app/tsconfig.json,target=tsconfig.json \
-    --mount=type=bind,source=/react_app/src,target=./src \
-    --mount=type=bind,source=/react_app/public,target=./public \
-    --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,target=/root/.npm \
+    npx buf generate
+
+RUN npx buf --version
+
+RUN --mount=type=cache,target=/root/.npm \
     npm run build
+
 
 ################################################################################
 # Create a stage for building the application.
 FROM --platform=$BUILDPLATFORM golang:latest AS build_go
 WORKDIR /src
 
+COPY /go_app .
+COPY buf.yaml ./buf.yaml
+COPY buf.gen-go.yaml ./buf.gen.yaml
+COPY /protos ./protos
+
 # Download dependencies as a separate step to take advantage of Docker's caching.
 # Leverage a cache mount to /go/pkg/mod/ to speed up subsequent builds.
 # Leverage bind mounts to go.sum and go.mod to avoid having to copy them into
 # the container.
 RUN --mount=type=cache,target=/go/pkg/mod/ \
-    --mount=type=bind,source=/go_app/go.sum,target=go.sum \
-    --mount=type=bind,source=/go_app/go.mod,target=go.mod \
     go mod download -x
 
-# This is the architecture you’re building for, which is passed in by the builder.
-# Placing it here allows the previous steps to be cached across architectures.
-ARG TARGETARCH
+RUN --mount=type=cache,target=/go/pkg/mod/ \
+    go install github.com/bufbuild/buf/cmd/buf@latest
+RUN --mount=type=cache,target=/go/pkg/mod/ \
+    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+RUN --mount=type=cache,target=/go/pkg/mod/ \
+    go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+
+RUN --mount=type=cache,target=/go/pkg/mod/ \ 
+    buf generate
+RUN --mount=type=cache,target=/go/pkg/mod/ \
+    go generate ./...
 
 # Build the application.
 # Leverage a cache mount to /go/pkg/mod/ to speed up subsequent builds.
 # Leverage a bind mount to the current directory to avoid having to copy the
 # source code into the container.
 RUN --mount=type=cache,target=/go/pkg/mod/ \
-    --mount=type=bind,source=/go_app,target=. \
     CGO_ENABLED=0 GOARCH=$TARGETARCH go build -o /bin/server .
 
 ################################################################################
@@ -71,10 +87,10 @@ FROM alpine:latest AS final
 # Leverage a cache mount to /var/cache/apk/ to speed up subsequent builds.
 RUN --mount=type=cache,target=/var/cache/apk \
     apk --update add \
-        ca-certificates \
-        tzdata \
-        && \
-        update-ca-certificates
+    ca-certificates \
+    tzdata \
+    && \
+    update-ca-certificates
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
@@ -91,6 +107,7 @@ USER appuser
 
 COPY --from=build_node /build /build
 COPY --from=build_go /bin/server /bin/
+
 
 # Expose the port that the application listens on.
 EXPOSE 8080
