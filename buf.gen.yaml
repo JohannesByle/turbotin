@@ -1,0 +1,14 @@
+version: v1
+plugins:
+  - plugin: go
+    out: go_app
+    opt: paths=source_relative
+  - plugin: connect-go
+    out: go_app
+    opt: paths=source_relative
+  - plugin: es
+    out: react_app/src
+    opt: target=ts,import_extension=none
+  - plugin: connect-query
+    out: react_app/src
+    opt: target=ts,import_extension=none
