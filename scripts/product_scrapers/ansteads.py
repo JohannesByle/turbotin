@@ -5,7 +5,7 @@ def scrape(pbar=None):
     item, price, stock, link = ["", "", "", ""]
     data = []
     name = "ansteads"
-    url = "https://www.shopansteads.com/everything-pipes/pipe-tobacco/"
+    url = "https://www.shopansteads.com/everything-pipes/tinned-pipe-tobacco/"
 
     soup = get_html(url)
     next_page = True
@@ -17,7 +17,8 @@ def scrape(pbar=None):
                 link = element.find("a", class_="title").get("href")
             if element.find("div", class_="product-block-price"):
                 price = element.find("div", class_="product-block-price").get_text().strip()
-            if element.find("div", class_="product-block-label label-outofstock"):
+            resoup = get_html(link)
+            if resoup.find("dd", class_="col-xs-7 out-of-stock"):
                 stock = "Out of stock"
             item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
         if soup.find("li", class_="next"):
