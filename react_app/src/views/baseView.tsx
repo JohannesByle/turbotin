@@ -1,3 +1,4 @@
+import { useQuery } from "@connectrpc/connect-query";
 import { AccountCircle, Login } from "@mui/icons-material";
 import {
   AppBar,
@@ -12,7 +13,6 @@ import {
 } from "@mui/material";
 import Typography from "@mui/material/Typography";
 import useScrollTrigger from "@mui/material/useScrollTrigger";
-import { useQuery } from "@tanstack/react-query";
 import { isUndefined, toPairs } from "lodash";
 import React, { Suspense, useMemo } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -36,7 +36,7 @@ const BaseView = (): JSX.Element => {
   const navigate = useNavigate();
   const [authDlg, showAuthDlg] = usePromisify(AuthDlg);
 
-  const { data: user, isLoading } = useQuery(auth.getCurrentUser.useQuery());
+  const { data: user, isLoading } = useQuery(auth.getCurrentUser);
   const isLoggedIn = (user?.email ?? "") !== "";
   const isAdmin = user?.isAdmin ?? false;
 

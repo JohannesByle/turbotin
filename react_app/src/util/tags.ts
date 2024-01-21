@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@connectrpc/connect-query";
 import { groupBy, isUndefined } from "lodash";
 import { useMemo } from "react";
 import { EMPTY_ARR } from "../consts";
@@ -26,10 +26,9 @@ export const useTags = (): {
   tagMap: Map<number, Tag>;
   catMap: Map<number, Category>;
 } => {
-  const { data: tobaccos_, isFetching: isFetchingTobaccos } = useQuery(
-    getTobaccos.useQuery()
-  );
-  const { data, isFetching } = useQuery(getAllTagData.useQuery());
+  const { data: tobaccos_, isFetching: isFetchingTobaccos } =
+    useQuery(getTobaccos);
+  const { data, isFetching } = useQuery(getAllTagData);
   const {
     links = EMPTY_ARR,
     cats = EMPTY_ARR,

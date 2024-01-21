@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@connectrpc/connect-query";
 import {
   CategoryScale,
   Chart,
@@ -58,7 +58,8 @@ const PriceHistory = (): JSX.Element => {
   }, [tag_id, tobaccoTags, all_tobaccos]);
 
   const { data = new TobaccoPrices(), isFetching: isFetchingPrices } = useQuery(
-    getTobaccoPrices.useQuery({ items: tobaccos.map((t) => t.id) })
+    getTobaccoPrices,
+    { items: tobaccos.map((t) => t.id) }
   );
 
   const tag = tagMap.get(tag_id);

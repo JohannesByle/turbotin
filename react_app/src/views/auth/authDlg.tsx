@@ -1,4 +1,5 @@
 import { ConnectError } from "@connectrpc/connect";
+import { createConnectQueryKey, useMutation } from "@connectrpc/connect-query";
 import LoginIcon from "@mui/icons-material/Login";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { LoadingButton } from "@mui/lab";
@@ -18,7 +19,7 @@ import {
   Zoom,
   ZoomProps,
 } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { isString } from "lodash";
 import React, { useCallback, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
@@ -46,11 +47,11 @@ const AuthDlg = (props: TDlgProps): JSX.Element => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { mutateAsync: login, isLoading: isLoggingIn } = useMutation(
-    auth.login.useMutation()
+  const { mutateAsync: login, isPending: isLoggingIn } = useMutation(
+    auth.login
   );
-  const { mutateAsync: signUp, isLoading: isSigningUp } = useMutation(
-    auth.signUp.useMutation()
+  const { mutateAsync: signUp, isPending: isSigningUp } = useMutation(
+    auth.signUp
   );
 
   const client = useQueryClient();
@@ -161,7 +162,7 @@ const AuthDlg = (props: TDlgProps): JSX.Element => {
                       setEmailError(err.rawMessage);
                   } finally {
                     await client.invalidateQueries({
-                      queryKey: auth.getCurrentUser.getQueryKey(),
+                      queryKey: createConnectQueryKey(auth.getCurrentUser),
                     });
                   }
                 }
@@ -188,7 +189,7 @@ const AuthDlg = (props: TDlgProps): JSX.Element => {
                       setEmailError(err.rawMessage);
                   } finally {
                     await client.invalidateQueries({
-                      queryKey: auth.getCurrentUser.getQueryKey(),
+                      queryKey: createConnectQueryKey(auth.getCurrentUser),
                     });
                   }
                 }

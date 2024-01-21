@@ -1,3 +1,8 @@
+import {
+  createConnectQueryKey,
+  useMutation,
+  useQuery,
+} from "@connectrpc/connect-query";
 import { Add, Delete } from "@mui/icons-material";
 import {
   Box,
@@ -5,10 +10,10 @@ import {
   IconButton,
   Switch,
   TextField,
-  Tooltip
+  Tooltip,
 } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { isUndefined } from "lodash";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { EMPTY_ARR, ICON_COL_PROPS, PALETTE, voidFn } from "../../consts";
@@ -20,19 +25,18 @@ import LoadingIcon from "../../util/components/loadingIcon";
 const Categories = (): JSX.Element => {
   const [deleting, setDeleting] = useState<boolean>(false);
 
-  const { data } = useQuery(getCategories.useQuery());
+  const { data } = useQuery(getCategories);
   const queryClient = useQueryClient();
   const onSettled = (): void =>
     void queryClient.invalidateQueries({
-      queryKey: getCategories.getQueryKey(),
+      queryKey: createConnectQueryKey(getCategories),
     });
-  const { mutateAsync: updateCategory, isLoading: isSaving } = useMutation({
-    ...admin.updateCategory.useMutation(),
-    onSettled,
-  });
+  const { mutateAsync: updateCategory, isPending: isSaving } = useMutation(
+    admin.updateCategory,
+    { onSettled }
+  );
 
-  const { mutateAsync: deleteCategory } = useMutation({
-    ...admin.deleteCategory.useMutation(),
+  const { mutateAsync: deleteCategory } = useMutation(admin.deleteCategory, {
     onSettled,
   });
 

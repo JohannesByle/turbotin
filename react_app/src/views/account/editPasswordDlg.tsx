@@ -1,3 +1,4 @@
+import { useMutation } from "@connectrpc/connect-query";
 import LoadingButton from "@mui/lab/LoadingButton";
 import {
   Dialog,
@@ -5,7 +6,6 @@ import {
   DialogContent,
   DialogTitle,
 } from "@mui/material";
-import { useMutation } from "@tanstack/react-query";
 import React, { useCallback, useState } from "react";
 import { PALETTE } from "../../consts";
 import * as auth from "../../protos/turbotin-Auth_connectquery";
@@ -20,8 +20,8 @@ const EditPasswordDlg = (props: TDlgProps): JSX.Element => {
   const [newPassword, setNewPassword] = useState<string>("");
   const [error, setError] = useState<string | undefined>(undefined);
 
-  const { mutateAsync: changePassword, isLoading } = useMutation(
-    auth.changePassword.useMutation()
+  const { mutateAsync: changePassword, isPending } = useMutation(
+    auth.changePassword
   );
 
   const setOldPassword: typeof setOldPassword_ = useCallback((password) => {
@@ -61,7 +61,7 @@ const EditPasswordDlg = (props: TDlgProps): JSX.Element => {
             onSubmit();
           }}
           variant={"contained"}
-          loading={isLoading}
+          loading={isPending}
         >
           Submit
         </LoadingButton>

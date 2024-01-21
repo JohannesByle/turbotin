@@ -1,22 +1,21 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { TRoute } from "../../consts";
 import * as auth from "../../protos/turbotin-Auth_connectquery";
 import { Box, CircularProgress } from "@mui/material";
+import { createConnectQueryKey, useMutation } from "@connectrpc/connect-query";
 
 const VerifyEmail = (): JSX.Element => {
   const { code, user_id } = useParams();
-  const { mutateAsync: verifyEmail } = useMutation(
-    auth.verifyEmail.useMutation()
-  );
+  const { mutateAsync: verifyEmail } = useMutation(auth.verifyEmail);
   const navigate = useNavigate();
   const client = useQueryClient();
 
   useEffect(() => {
     void verifyEmail({ code, userId: Number(user_id) }).then(async () => {
       await client.invalidateQueries({
-        queryKey: auth.getCurrentUser.getQueryKey(),
+        queryKey: createConnectQueryKey(auth.getCurrentUser),
       });
       navigate(TRoute.my_account);
     });

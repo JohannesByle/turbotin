@@ -13,7 +13,7 @@ import React, {
 } from "react";
 import { TSetState } from ".";
 import { IS_PROD, MS_PER_SECOND, voidFn } from "../consts";
-import { Auth } from "../protos/turbotin-Auth_connectquery";
+import { getCurrentUser } from "../protos/turbotin-Auth_connectquery";
 import { Severity } from "../protos/turbotin_pb";
 
 const { ERROR, INFO, SUCCESS, WARNING, UNSPECIFIED } = Severity;
@@ -66,7 +66,7 @@ function getTransport(
           return resp;
         } catch (e) {
           if (e instanceof ConnectError) {
-            if (req.method.name !== Auth.methods.getCurrentUser.name)
+            if (req.method.name !== getCurrentUser.name)
               doSetFlashes(e.rawMessage, ERROR);
           }
           throw e;

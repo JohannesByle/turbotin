@@ -1,5 +1,5 @@
+import { useQuery } from "@connectrpc/connect-query";
 import { useMediaQuery } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
 import { isString, isUndefined, last, values } from "lodash";
 import { Dispatch, SetStateAction, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -19,7 +19,7 @@ const USD_FORMAT = new Intl.NumberFormat("en-US", {
 export const formatUSD = (v: number): string => USD_FORMAT.format(v);
 
 export const useUser = (): User => {
-  const { data: user } = useQuery(getCurrentUser.useQuery());
+  const { data: user } = useQuery(getCurrentUser);
   const navigate = useNavigate();
 
   useEffect(() => {

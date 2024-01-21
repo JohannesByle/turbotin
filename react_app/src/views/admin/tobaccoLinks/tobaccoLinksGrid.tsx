@@ -1,5 +1,6 @@
+import { createConnectQueryKey, useMutation } from "@connectrpc/connect-query";
 import { DataGrid, GridColDef, GridFilterModel } from "@mui/x-data-grid";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { fromPairs, groupBy, isUndefined, sortBy, toPairs } from "lodash";
 import React, { useMemo } from "react";
 import { PALETTE } from "../../../consts";
@@ -13,7 +14,7 @@ import {
   TobaccoToTag,
 } from "../../../protos/turbotin_pb";
 import TagEditCell from "../editCell";
-import { NULL_CAT, TRow, getCats, getValidCats } from "./util";
+import { getCats, getValidCats, NULL_CAT, TRow } from "./util";
 
 type TProps = {
   tags: Tag[];
@@ -54,7 +55,7 @@ const TobaccoLinksGrid = (props: TProps): JSX.Element => {
   const catValues = useMemo(() => groupBy(tags, (t) => t.categoryId), [tags]);
 
   const { mutateAsync: updateTobaccoToTag } = useMutation(
-    admin.updateTobaccoToTag.useMutation()
+    admin.updateTobaccoToTag
   );
 
   const queryClient = useQueryClient();
@@ -131,7 +132,7 @@ const TobaccoLinksGrid = (props: TProps): JSX.Element => {
           try {
             await updateTobaccoToTag(newLink);
             await queryClient.invalidateQueries({
-              queryKey: getTobaccoToTags.getQueryKey(),
+              queryKey: createConnectQueryKey(getTobaccoToTags),
             });
             return newRow;
           } catch {

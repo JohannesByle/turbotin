@@ -29,7 +29,6 @@ export const router = createBrowserRouter([
 const client = new QueryClient({
   defaultOptions: {
     queries: {
-      cacheTime: 5 * MS_PER_MINUTE,
       staleTime: 5 * MS_PER_MINUTE,
     },
   },

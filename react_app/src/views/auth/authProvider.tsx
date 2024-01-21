@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@connectrpc/connect-query";
 import React, { PropsWithChildren } from "react";
 import { Navigate } from "react-router-dom";
 import { TAuthLevel, TRoute } from "../../consts";
@@ -23,7 +23,7 @@ export const isAuthenticated = (level: TAuthLevel, user?: User): boolean => {
 
 const AuthProvider = (props: TProps): JSX.Element => {
   const { level, children } = props;
-  const { data: user, isFetching } = useQuery(getCurrentUser.useQuery());
+  const { data: user, isFetching } = useQuery(getCurrentUser);
 
   if (isAuthenticated(level, user)) return <>{children}</>;
   else if (isFetching) return <Loading />;

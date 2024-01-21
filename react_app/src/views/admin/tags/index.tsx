@@ -1,3 +1,8 @@
+import {
+  createConnectQueryKey,
+  useMutation,
+  useQuery,
+} from "@connectrpc/connect-query";
 import { Add, FilterAlt } from "@mui/icons-material";
 import {
   Box,
@@ -11,25 +16,27 @@ import {
   Switch,
   Tab,
   Tabs,
-  TextField
+  TextField,
 } from "@mui/material";
 import { GridFilterModel } from "@mui/x-data-grid";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { first, isString, isUndefined } from "lodash";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { EMPTY_ARR, PALETTE } from "../../../consts";
 import * as admin from "../../../protos/turbotin-Admin_connectquery";
 import {
-  getCategories, getTags, getTagToTags
+  getCategories,
+  getTags,
+  getTagToTags,
 } from "../../../protos/turbotin-Public_connectquery";
 import LoadingIcon from "../../../util/components/loadingIcon";
 import TagGrid from "./tagGrid";
 import { getChildren, NULL_CAT, OPERATOR } from "./util";
 
 const Tags = (): JSX.Element => {
-  const { data: tags_ } = useQuery(getTags.useQuery());
-  const { data: cats_ } = useQuery(getCategories.useQuery());
-  const { data: links_ } = useQuery(getTagToTags.useQuery());
+  const { data: tags_ } = useQuery(getTags);
+  const { data: cats_ } = useQuery(getCategories);
+  const { data: links_ } = useQuery(getTagToTags);
 
   const tags = tags_?.items ?? EMPTY_ARR;
   const cats = cats_?.items ?? EMPTY_ARR;
@@ -46,9 +53,7 @@ const Tags = (): JSX.Element => {
   const tagMap = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
   const catMap = useMemo(() => new Map(cats.map((c) => [c.id, c])), [cats]);
 
-  const { mutateAsync: createTag, isLoading } = useMutation(
-    admin.createTag.useMutation()
-  );
+  const { mutateAsync: createTag, isPending } = useMutation(admin.createTag);
   const queryClient = useQueryClient();
 
   const cat = cats.find((c) => c.id === cat_) ?? first(cats) ?? NULL_CAT;
@@ -63,12 +68,10 @@ const Tags = (): JSX.Element => {
     if (isUndefined(el)) return;
     const value = el.value;
     if (value.length === 0) return;
-    await createTag(
-      { value, categoryId: cat.id }
-    );
+    await createTag({ value, categoryId: cat.id });
     el.value = "";
     await queryClient.invalidateQueries({
-      queryKey: getTags.getQueryKey(),
+      queryKey: createConnectQueryKey(getTags),
     });
   }, [cat, createTag, queryClient]);
 
@@ -154,7 +157,7 @@ const Tags = (): JSX.Element => {
           }}
         />
         <IconButton onClick={addTag} color="primary">
-          {isLoading ? <LoadingIcon /> : <Add />}
+          {isPending ? <LoadingIcon /> : <Add />}
         </IconButton>
       </Box>
       <Box sx={{ flex: 1, height: "100%", minWidth: 0, p: 2, minHeight: 0 }}>

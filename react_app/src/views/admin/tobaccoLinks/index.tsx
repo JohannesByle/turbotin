@@ -1,3 +1,4 @@
+import { useQuery } from "@connectrpc/connect-query";
 import { FilterAlt } from "@mui/icons-material";
 import {
   Box,
@@ -8,7 +9,6 @@ import {
   TextField,
 } from "@mui/material";
 import { GridFilterModel } from "@mui/x-data-grid";
-import { useQuery } from "@tanstack/react-query";
 import React, { useMemo, useState } from "react";
 import { EMPTY_ARR, PALETTE } from "../../../consts";
 import {
@@ -24,11 +24,11 @@ import { OPERATOR, getCats } from "./util";
 const NAME = "Name";
 
 const TobaccoLinks = (): JSX.Element => {
-  const { data: tags_ } = useQuery(getTags.useQuery());
-  const { data: cats_ } = useQuery(getCategories.useQuery());
-  const { data: links_ } = useQuery(getTobaccoToTags.useQuery());
-  const { data: tagLinks_ } = useQuery(getTagToTags.useQuery());
-  const { data: tobaccos_ } = useQuery(getTobaccos.useQuery());
+  const { data: tags_ } = useQuery(getTags);
+  const { data: cats_ } = useQuery(getCategories);
+  const { data: links_ } = useQuery(getTobaccoToTags);
+  const { data: tagLinks_ } = useQuery(getTagToTags);
+  const { data: tobaccos_ } = useQuery(getTobaccos);
 
   const tags = tags_?.items ?? EMPTY_ARR;
   const cats = cats_?.items ?? EMPTY_ARR;

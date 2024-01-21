@@ -7,14 +7,19 @@ import {
   Chip,
   IconButton,
   TextField,
-  Tooltip
+  Tooltip,
 } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
-  GridRenderEditCellParams
+  GridRenderEditCellParams,
 } from "@mui/x-data-grid";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  createConnectQueryKey,
+} from "@connectrpc/connect-query";
 import { isUndefined } from "lodash";
 import React, {
   SyntheticEvent,
@@ -22,7 +27,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useState
+  useState,
 } from "react";
 import {
   ALL_STORES,
@@ -30,7 +35,7 @@ import {
   ICON_COL_PROPS,
   PALETTE,
   STORE_TO_NAME,
-  voidFn
+  voidFn,
 } from "../../consts";
 import * as svc from "../../protos/turbotin-Notifications_connectquery";
 import { getNotifications } from "../../protos/turbotin-Notifications_connectquery";
@@ -85,22 +90,18 @@ type TRow = PlainMessage<Notification> & {
 };
 
 const Notifications = (): JSX.Element => {
-  const { data, isFetching } = useQuery(getNotifications.useQuery());
+  const { data, isFetching } = useQuery(getNotifications);
   const queryClient = useQueryClient();
   const onSettled = (): void =>
     void queryClient.invalidateQueries({
-      queryKey: getNotifications.getQueryKey(),
+      queryKey: createConnectQueryKey(getNotifications),
     });
-  const { mutateAsync: createNotification, isLoading: isCreating } = useMutation({
-    ...svc.createNotification.useMutation(),
-    onSettled,
-  });
-  const { mutateAsync: updateNotification, isLoading: isUpdating } = useMutation({
-    ...svc.updateNotification.useMutation(),
-    onSettled,
-  });
-  const { mutateAsync: deleteNotifications, isLoading: isDeleting } =
-    useMutation({ ...svc.deleteNotifications.useMutation(), onSettled });
+  const { mutateAsync: createNotification, isPending: isCreating } =
+    useMutation(svc.createNotification, { onSettled });
+  const { mutateAsync: updateNotification, isPending: isUpdating } =
+    useMutation(svc.updateNotification, { onSettled });
+  const { mutateAsync: deleteNotifications, isPending: isDeleting } =
+    useMutation(svc.deleteNotifications, { onSettled });
 
   const { tagMap } = useTags();
   const [tag, setTag] = useState<Tag>();
@@ -157,7 +158,7 @@ const Notifications = (): JSX.Element => {
                 onClick={() =>
                   void updateNotification({
                     ...row,
-                     excludeStores: !row.excludeStores ,
+                    excludeStores: !row.excludeStores,
                   })
                 }
               >
@@ -233,8 +234,7 @@ const Notifications = (): JSX.Element => {
                 disabled={isUndefined(tag) || isInvalid}
                 onClick={async () => {
                   if (!isUndefined(tag)) {
-                    await createNotification({tagId: tag.id 
-                    });
+                    await createNotification({ tagId: tag.id });
                     setTag(undefined);
                   }
                 }}

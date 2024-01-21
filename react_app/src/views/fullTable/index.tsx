@@ -1,3 +1,4 @@
+import { useQuery } from "@connectrpc/connect-query";
 import { ProductionQuantityLimits, Timeline } from "@mui/icons-material";
 import {
   Box,
@@ -17,7 +18,6 @@ import {
   GridColumnVisibilityModel,
 } from "@mui/x-data-grid";
 import { GridInitialStateCommunity } from "@mui/x-data-grid/models/gridStateCommunity";
-import { useQuery } from "@tanstack/react-query";
 import dayjs, { Dayjs } from "dayjs";
 import { fromPairs, isEmpty, isString, isUndefined } from "lodash";
 import React, { useDeferredValue, useMemo, useState } from "react";
@@ -38,14 +38,14 @@ import { useScreenSize } from "../../util";
 import { ActionMenu, TAction } from "../../util/actions";
 import BoldSubStr from "../../util/components/boldSubStr";
 import { useTags } from "../../util/tags";
+import Filters from "./filters";
 import {
+  calcFilterModel,
   FILTER_COL,
   FILTER_FIELD,
   TFilter,
-  calcFilterModel,
 } from "./filterUtil";
-import Filters from "./filters";
-import { TRow, price } from "./util";
+import { price, TRow } from "./util";
 
 type TColVisibilityModel = Partial<
   Record<keyof ObsTobacco | typeof FILTER_FIELD | "price" | "kebap", boolean>
@@ -81,7 +81,7 @@ const INITIAL_STATE: GridInitialStateCommunity = {
 };
 
 const FullTable = (): JSX.Element => {
-  const { data, isFetching } = useQuery(todaysTobaccos.useQuery({}));
+  const { data, isFetching } = useQuery(todaysTobaccos);
   const tobaccos = data?.items ?? EMPTY_ARR;
 
   const [filter, setFilter] = useState<TFilter>({ tags: {} });

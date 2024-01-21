@@ -1,7 +1,8 @@
+import { createConnectQueryKey, useMutation } from "@connectrpc/connect-query";
 import { Delete } from "@mui/icons-material";
 import { IconButton, Tooltip } from "@mui/material";
 import { DataGrid, GridColDef, GridFilterModel } from "@mui/x-data-grid";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { fromPairs, groupBy, isUndefined, sortBy, toPairs } from "lodash";
 import React, { useMemo } from "react";
 import { ICON_COL_PROPS, PALETTE } from "../../../consts";
@@ -69,27 +70,23 @@ const TagGrid = (props: TProps): JSX.Element => {
 
   const onTagToTagsSettled = (): void =>
     void queryClient.invalidateQueries({
-      queryKey: getTagToTags.getQueryKey(),
+      queryKey: createConnectQueryKey(getTagToTags),
     });
-  const { mutateAsync: updateTagToTag } = useMutation({
-    ...admin.updateTagToTag.useMutation(),
+  const { mutateAsync: updateTagToTag } = useMutation(admin.updateTagToTag, {
     onSettled: onTagToTagsSettled,
   });
-  const { mutateAsync: createTagToTag } = useMutation({
-    ...admin.createTagToTag.useMutation(),
+  const { mutateAsync: createTagToTag } = useMutation(admin.createTagToTag, {
     onSettled: onTagToTagsSettled,
   });
 
   const onTagsSettled = (): void =>
     void queryClient.invalidateQueries({
-      queryKey: getTags.getQueryKey(),
+      queryKey: createConnectQueryKey(getTags),
     });
-  const { mutateAsync: updateTag } = useMutation({
-    ...admin.updateTag.useMutation(),
+  const { mutateAsync: updateTag } = useMutation(admin.updateTag, {
     onSettled: onTagsSettled,
   });
-  const { mutateAsync: deleteTag } = useMutation({
-    ...admin.deleteTag.useMutation(),
+  const { mutateAsync: deleteTag } = useMutation(admin.deleteTag, {
     onSettled: onTagsSettled,
   });
 

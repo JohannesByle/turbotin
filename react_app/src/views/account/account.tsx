@@ -1,3 +1,8 @@
+import {
+  createConnectQueryKey,
+  useMutation,
+  useQuery,
+} from "@connectrpc/connect-query";
 import { Delete, Edit, Email, Logout, Warning } from "@mui/icons-material";
 import {
   Avatar,
@@ -12,7 +17,7 @@ import {
   ListItemAvatar,
   Tooltip,
 } from "@mui/material";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import cookie from "cookie";
 import { isUndefined } from "lodash";
 import React from "react";
@@ -24,9 +29,9 @@ import { usePromisify } from "../../util/promisify";
 import EditPasswordDlg from "./editPasswordDlg";
 
 const Account = (): JSX.Element => {
-  const { data: user } = useQuery(auth.getCurrentUser.useQuery());
-  const { mutateAsync: deleteUser, isLoading: isDeleting } = useMutation(
-    auth.deleteUser.useMutation()
+  const { data: user } = useQuery(auth.getCurrentUser);
+  const { mutateAsync: deleteUser, isPending: isDeleting } = useMutation(
+    auth.deleteUser
   );
 
   const [passwordDlg, showPasswordDlg] = usePromisify(EditPasswordDlg);
@@ -68,7 +73,7 @@ const Account = (): JSX.Element => {
             path: "/",
           });
           await client.invalidateQueries({
-            queryKey: auth.getCurrentUser.getQueryKey(),
+            queryKey: createConnectQueryKey(auth.getCurrentUser),
           });
           navigate(TRoute.full_table);
         }}
@@ -88,7 +93,7 @@ const Account = (): JSX.Element => {
           });
           await deleteUser({});
           await client.invalidateQueries({
-            queryKey: auth.getCurrentUser.getQueryKey(),
+            queryKey: createConnectQueryKey(auth.getCurrentUser),
           });
           navigate(TRoute.full_table);
         }}
