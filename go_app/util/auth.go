@@ -91,6 +91,7 @@ func initKey() {
 		return
 	}
 	_, err := rand.Read(SECRET_KEY)
+	SECRET_KEY_DATE = time.Now()
 	if err != nil {
 		log.Fatalf("failed to generate secret key: %v", err)
 	}
@@ -162,7 +163,7 @@ var AUTH_INTERCEPTOR = UnaryInterceptorFunc(func(next UnaryFunc) UnaryFunc {
 		if authenticated {
 			return next(context.WithValue(ctx, EMAIL_KEY, email), req)
 		} else if !whitelisted {
-			return nil, status.Errorf(codes.Aborted, "authentication failed")
+			return nil, status.Errorf(codes.Unauthenticated, "Unauthenticated")
 		} else {
 			return next(ctx, req)
 		}

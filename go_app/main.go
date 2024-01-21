@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -77,6 +78,9 @@ func main() {
 	mux.Handle(protosconnect.NewNotificationsHandler(&services.Notifications{}, opts))
 	mux.Handle("/", fileHandler(http.FileServer(http.Dir(STATIC_DIR))))
 
-	http.ListenAndServe(util.HOST, h2c.NewHandler(mux, &http2.Server{}))
-
+	log.Printf("listening on: %s", util.HOST)
+	err := http.ListenAndServe(util.HOST, h2c.NewHandler(mux, &http2.Server{}))
+	if err != nil {
+		log.Fatal(err)
+	}
 }
