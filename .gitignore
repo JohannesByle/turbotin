@@ -39,7 +39,7 @@
 *.env
 /go_app/protos/
 /react_app/src/protos/
-/go_app/azure_deploy.sh
+/azure_deploy.sh
 /go_app/ent/*
 !/go_app/ent/schema/
 !/go_app/ent/generate.go
