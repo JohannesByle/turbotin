@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -195,10 +196,9 @@ func GenSalt(length int) string {
 }
 
 func hashString(salt string, password string) string {
-	hash := sha256.New()
-	hash.Write([]byte(salt))
-	hash.Write([]byte(password))
-	return hex.EncodeToString(hash.Sum(nil))
+	mac := hmac.New(sha256.New, []byte(salt))
+	mac.Write([]byte(password))
+	return hex.EncodeToString(mac.Sum(nil))
 }
 
 func IsAfter(t time.Time, d time.Duration) bool {
