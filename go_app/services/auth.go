@@ -51,7 +51,7 @@ func (s *Auth) SignUp(ctx context.Context, req *Request[pb.AuthArgs]) (*Response
 		}
 	}
 	err = WithTx(ctx, DB, func(tx *ent.Tx) error {
-		user, err = DB.User.Create().
+		user, err = tx.User.Create().
 			SetEmail(in.Email).
 			SetPassword(GeneratePasswordHash(in.Password)).
 			SetEmailVerified(false).
