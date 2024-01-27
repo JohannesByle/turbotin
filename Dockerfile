@@ -1,7 +1,6 @@
 # syntax=docker/dockerfile:1
 
 # Prevents 403 errors in ghcr 
-ARG BUILDKIT_NO_CLIENT_TOKEN=1
 
 # This is the architecture you’re building for, which is passed in by the builder.
 # Placing it here allows the previous steps to be cached across architectures.
