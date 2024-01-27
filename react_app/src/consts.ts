@@ -28,9 +28,9 @@ export const ICON_COL_PROPS = {
 
 export const THEME = createTheme({
   palette: {
-    primary: { main: cyan[100], contrastText: "white" },
-    secondary: { main: yellow[100] },
-    info: { main: grey[100] },
+    primary: { main: cyan[800], contrastText: "white" },
+    secondary: { main: yellow[300] },
+    info: { main: grey[600] },
     background: { default: grey[100] },
   },
 });
