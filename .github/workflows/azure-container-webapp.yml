@@ -28,7 +28,6 @@ name: Build and deploy a container to an Azure Web App
 
 env:
   AZURE_WEBAPP_NAME: turbotin-test-app  # set this to the name of your Azure Web App
-  BUILDKIT_NO_CLIENT_TOKEN: 1
 
 on:
   push:
@@ -37,6 +36,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   build:
