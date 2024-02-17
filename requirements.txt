@@ -1,0 +1,14 @@
+beautifulsoup4==4.12.2
+Flask==2.2.3
+flask_login==0.6.2
+flask_smorest==0.41.0
+flask_sqlalchemy==3.0.3
+fuzzywuzzy==0.18.0
+htmlmin==0.1.12
+marshmallow==3.19.0
+pandas==2.0.0
+python-slugify==8.0.1
+selenium==4.9.0
+SQLAlchemy==2.0.10
+tqdm==4.65.0
+Werkzeug==2.2.3
