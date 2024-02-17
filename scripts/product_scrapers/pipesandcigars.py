@@ -22,7 +22,6 @@ def scrape(pbar=None):
             stock = "In Stock"
             if element.find("span", class_="value"):
                 price = "$" + element.find("span", class_="value").get("content")
-
             item, price, stock, link = add_item(data, name, item, price, stock, link, pbar)
         if soup.find("a", class_="right-arrow"):
             page = page + 1
