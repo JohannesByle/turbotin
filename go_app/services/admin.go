@@ -19,6 +19,7 @@ var (
 	TAG_CYCLE    = errors.New("Tag cycle detected")
 	CAT_CYCLE    = errors.New("Category cycle detected")
 	NON_ROOT_CAT = errors.New("Tobacco links must all be root categories")
+	CAT_BRANCH   = errors.New("One child has more than one parent in a single category")
 )
 
 func recurse(id int, tagMap map[int][]int, catMap map[int]int, seenTags map[int]bool, seenCats map[int]map[int]bool) error {
@@ -79,7 +80,7 @@ func recurseCats(id int, catMap map[int]map[int]bool, seenCats map[int]bool) err
 	return nil
 }
 
-func assertStructureValid(ctx context.Context, tx *ent.Tx) error {
+func AssertStructureValid(ctx context.Context, tx *ent.Tx) error {
 	catMap := map[int]int{}
 
 	tags, err := tx.Tag.Query().WithCategory().All(ctx)
@@ -106,6 +107,7 @@ func assertStructureValid(ctx context.Context, tx *ent.Tx) error {
 
 	tagMap := map[int][]int{}
 	links, err := tx.TagToTag.Query().WithParentTag().WithTag().All(ctx)
+
 	if err != nil {
 		return err
 	}
@@ -140,6 +142,25 @@ func assertStructureValid(ctx context.Context, tx *ent.Tx) error {
 			return err
 		}
 	}
+
+	// No blends with multiple brands
+	seenCats = map[int]map[int]bool{}
+	for _, link := range links {
+		parent := link.Edges.ParentTag.ID
+		child, ok := catMap[link.Edges.Tag.ID]
+		if !ok {
+			return MISSING_CAT
+		}
+		_, ok = seenCats[parent]
+		if !ok {
+			seenCats[parent] = map[int]bool{}
+		}
+
+		if seenCats[parent][child] {
+			return CAT_BRANCH
+		}
+		seenCats[parent][child] = true
+	}
 	return nil
 }
 
@@ -153,7 +174,7 @@ func (s *Admin) UpdateTobaccoToTag(ctx context.Context, req *Request[pb.TobaccoT
 		if err != nil {
 			return err
 		}
-		return assertStructureValid(ctx, tx)
+		return AssertStructureValid(ctx, tx)
 	})
 	if err != nil {
 		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
@@ -171,7 +192,7 @@ func (s *Admin) CreateTobaccoToTag(ctx context.Context, req *Request[pb.TobaccoT
 		if err != nil {
 			return err
 		}
-		return assertStructureValid(ctx, tx)
+		return AssertStructureValid(ctx, tx)
 	})
 	if err != nil {
 		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
@@ -189,7 +210,7 @@ func (s *Admin) UpdateTagToTag(ctx context.Context, req *Request[pb.TagToTag]) (
 		if err != nil {
 			return err
 		}
-		return assertStructureValid(ctx, tx)
+		return AssertStructureValid(ctx, tx)
 
 	})
 	if err != nil {
@@ -208,7 +229,7 @@ func (s *Admin) CreateTagToTag(ctx context.Context, req *Request[pb.TagToTag]) (
 		if err != nil {
 			return err
 		}
-		return assertStructureValid(ctx, tx)
+		return AssertStructureValid(ctx, tx)
 	})
 	if err != nil {
 		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
@@ -226,7 +247,7 @@ func (s *Admin) UpdateTag(ctx context.Context, req *Request[pb.Tag]) (*Response[
 		if err != nil {
 			return err
 		}
-		return assertStructureValid(ctx, tx)
+		return AssertStructureValid(ctx, tx)
 	})
 	if err != nil {
 		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
@@ -244,7 +265,7 @@ func (s *Admin) CreateTag(ctx context.Context, req *Request[pb.Tag]) (*Response[
 		if err != nil {
 			return err
 		}
-		return assertStructureValid(ctx, tx)
+		return AssertStructureValid(ctx, tx)
 	})
 	if err != nil {
 		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
@@ -259,7 +280,7 @@ func (s *Admin) DeleteTag(ctx context.Context, req *Request[pb.Tag]) (*Response[
 		if err != nil {
 			return err
 		}
-		return assertStructureValid(ctx, tx)
+		return AssertStructureValid(ctx, tx)
 	})
 	if err != nil {
 		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
@@ -276,7 +297,7 @@ func (s *Admin) UpdateCategory(ctx context.Context, req *Request[pb.Category]) (
 		if err != nil {
 			return err
 		}
-		return assertStructureValid(ctx, tx)
+		return AssertStructureValid(ctx, tx)
 	})
 	if err != nil {
 		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
@@ -293,7 +314,7 @@ func (s *Admin) CreateCategory(ctx context.Context, req *Request[pb.Category]) (
 		if err != nil {
 			return err
 		}
-		return assertStructureValid(ctx, tx)
+		return AssertStructureValid(ctx, tx)
 	})
 	if err != nil {
 		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
@@ -308,7 +329,7 @@ func (s *Admin) DeleteCategory(ctx context.Context, req *Request[pb.Category]) (
 		if err != nil {
 			return err
 		}
-		return assertStructureValid(ctx, tx)
+		return AssertStructureValid(ctx, tx)
 	})
 	if err != nil {
 		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
