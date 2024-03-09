@@ -112,7 +112,7 @@ COPY --from=build_go /bin/server /bin/
 
 
 # Expose the port that the application listens on.
-EXPOSE 8080
+EXPOSE 80
 
 # What the container should run when it is started.
 ENTRYPOINT [ "/bin/server" ]
