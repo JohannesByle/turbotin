@@ -1,4 +1,4 @@
-package util
+package port_data
 
 import (
 	"context"
@@ -12,6 +12,8 @@ import (
 	"time"
 	"turbotin/ent"
 	"turbotin/protos"
+	"turbotin/services"
+	"turbotin/util"
 
 	"github.com/schollz/progressbar/v3"
 )
@@ -35,10 +37,10 @@ func batch[T any](in []T, batchSize int) [][]T {
 	return result
 }
 
-func PortTobaccos() {
+func portTobaccos(tx *ent.Tx) error {
 	f, err := os.Open("../data/archive.csv")
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer f.Close()
 
@@ -98,13 +100,20 @@ func PortTobaccos() {
 	}
 
 	ctx := context.Background()
-	rows := DB.Tobacco.MapCreateBulk(tobaccos, func(c *ent.TobaccoCreate, i int) {
+	_, err = tx.Tobacco.Delete().Exec(ctx)
+	if err != nil {
+		return err
+	}
+	rows, err := tx.Tobacco.MapCreateBulk(tobaccos, func(c *ent.TobaccoCreate, i int) {
 		t := tobaccos[i]
 		c.SetStore(t.Store).
 			SetItem(t.Item).
 			SetLink(t.Link).
 			AddPrices()
-	}).SaveX(ctx)
+	}).Save(ctx)
+	if err != nil {
+		return err
+	}
 	log.Printf("Created %d tobaccos", len(tobaccos))
 
 	bar := progressbar.Default(int64(len(rows)), "Creating prices")
@@ -113,7 +122,7 @@ func PortTobaccos() {
 		builders := []*ent.TobaccoPriceCreate{}
 		for j, t := range tobaccoArrs[i] {
 			for _, p := range t.Edges.Prices {
-				builders = append(builders, DB.TobaccoPrice.Create().
+				builders = append(builders, tx.TobaccoPrice.Create().
 					SetPrice(p.Price).
 					SetStock(p.Stock).
 					SetTime(p.Time).
@@ -121,16 +130,19 @@ func PortTobaccos() {
 			}
 		}
 
-		DB.TobaccoPrice.CreateBulk(builders...).SaveX(ctx)
+		_, err = tx.TobaccoPrice.CreateBulk(builders...).Save(ctx)
+		if err != nil {
+			return err
+		}
 		bar.Add(len(arr))
 	}
-
+	return nil
 }
 
-func PortCategories() {
+func portCategories(tx *ent.Tx) error {
 	f, err := os.Open("../data/cat_data.csv")
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer f.Close()
 
@@ -168,39 +180,51 @@ func PortCategories() {
 
 	ctx := context.Background()
 
-	brandCat := DB.Category.Create().SetName("Brand").SaveX(ctx)
-	blendCat := DB.Category.Create().SetName("Blend").SaveX(ctx)
-	DB.Category.Create().SetName("Size").SaveX(ctx)
-	DB.Category.Create().SetName("Cut").SaveX(ctx)
+	tx.Category.Delete().Exec(ctx)
 
+	brandCat, err := tx.Category.Create().SetName("Brand").Save(ctx)
+	if err != nil {
+		return err
+	}
+	blendCat, err := tx.Category.Create().SetName("Blend").Save(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Category.Create().SetName("Size").Save(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Category.Create().SetName("Cut").Save(ctx)
+	if err != nil {
+		return err
+	}
 	brands := []*ent.Tag{}
 	blends := []*ent.Tag{}
-
-	// dedup on name
-	seenBlends := map[string]bool{}
 
 	for brand, arr := range blendMap {
 		brands = append(brands, &ent.Tag{Value: brand})
 		for blend := range arr {
-			if seenBlends[strings.ToLower(blend)] {
-				continue
-			}
-			seenBlends[strings.ToLower(blend)] = true
 			blendTag := &ent.Tag{Value: blend}
 			blends = append(blends, blendTag)
 		}
 	}
-	brands = DB.Tag.MapCreateBulk(brands, func(c *ent.TagCreate, i int) {
+	brands, err = tx.Tag.MapCreateBulk(brands, func(c *ent.TagCreate, i int) {
 		b := brands[i]
 		c.SetValue(b.Value).
 			SetCategory(brandCat)
-	}).SaveX(ctx)
+	}).Save(ctx)
+	if err != nil {
+		return err
+	}
 	log.Printf("Created %d brands", len(brands))
-	blends = DB.Tag.MapCreateBulk(blends, func(c *ent.TagCreate, i int) {
+	blends, err = tx.Tag.MapCreateBulk(blends, func(c *ent.TagCreate, i int) {
 		b := blends[i]
 		c.SetValue(b.Value).
 			SetCategory(blendCat)
-	}).SaveX(ctx)
+	}).Save(ctx)
+	if err != nil {
+		return err
+	}
 	blendNameMap := map[string]*ent.Tag{}
 	for _, blend := range blends {
 		blendNameMap[blend.Value] = blend
@@ -208,29 +232,32 @@ func PortCategories() {
 	log.Printf("Created %d blends", len(blends))
 
 	tagToTags := []*ent.TagToTag{}
-	for _, brand := range brands {
-		for name := range blendMap[brand.Value] {
-			blend, ok := blendNameMap[name]
-			if !ok {
-				continue
-			}
+	i := 0
+	j := 0
+	for _, arr := range blendMap {
+		for range arr {
 			tagToTags = append(tagToTags, &ent.TagToTag{
 				Edges: ent.TagToTagEdges{
-					ParentTag: blend,
-					Tag:       brand,
+					ParentTag: blends[i],
+					Tag:       brands[j],
 				},
 			})
+			i++
 		}
+		j++
 	}
-	DB.TagToTag.MapCreateBulk(tagToTags, func(c *ent.TagToTagCreate, i int) {
+	_, err = tx.TagToTag.MapCreateBulk(tagToTags, func(c *ent.TagToTagCreate, i int) {
 		t := tagToTags[i]
 		c.SetParentTag(t.Edges.ParentTag).
 			SetTag(t.Edges.Tag)
 
-	}).SaveX(ctx)
+	}).Save(ctx)
+	if err != nil {
+		return err
+	}
 	log.Printf("Created %d links", len(tagToTags))
 
-	tobaccos := DB.Tobacco.Query().AllX(ctx)
+	tobaccos := tx.Tobacco.Query().AllX(ctx)
 	tobaccoMap := map[string]*ent.Tobacco{}
 	for _, tobacco := range tobaccos {
 		tobaccoMap[tobacco.Item] = tobacco
@@ -254,11 +281,23 @@ func PortCategories() {
 		}
 
 	}
-	DB.TobaccoToTag.MapCreateBulk(tobaccoToTags, func(c *ent.TobaccoToTagCreate, i int) {
+	_, err = tx.TobaccoToTag.MapCreateBulk(tobaccoToTags, func(c *ent.TobaccoToTagCreate, i int) {
 		t := tobaccoToTags[i]
 		c.SetTag(t.Edges.Tag).
 			SetTobacco(t.Edges.Tobacco)
-	}).SaveX(ctx)
+	}).Save(ctx)
+	if err != nil {
+		return err
+	}
 	log.Printf("Created %d tobacco tags", len(tobaccoToTags))
+	return services.AssertStructureValid(ctx, tx)
+}
 
+func PortData() {
+	ctx := context.Background()
+	// WithTx(ctx, DB, portTobaccos)
+	err := util.WithTx(ctx, util.DB, portCategories)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
