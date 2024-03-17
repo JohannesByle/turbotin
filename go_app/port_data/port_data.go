@@ -18,16 +18,18 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
+const BATCH_SIZE = 5000
+
 type tobaccoKey struct {
 	item string
 	link string
 }
 
-func batch[T any](in []T, batchSize int) [][]T {
+func batch[T any](in []T) [][]T {
 	var result = make([][]T, 0)
 
-	for i := 0; i < len(in); i = i + batchSize {
-		j := i + batchSize
+	for i := 0; i < len(in); i = i + BATCH_SIZE {
+		j := i + BATCH_SIZE
 		if j > len(in) {
 			j = len(in)
 		}
@@ -104,21 +106,27 @@ func portTobaccos(tx *ent.Tx) error {
 	if err != nil {
 		return err
 	}
-	rows, err := tx.Tobacco.MapCreateBulk(tobaccos, func(c *ent.TobaccoCreate, i int) {
-		t := tobaccos[i]
-		c.SetStore(t.Store).
-			SetItem(t.Item).
-			SetLink(t.Link).
-			AddPrices()
-	}).Save(ctx)
-	if err != nil {
-		return err
+	tobaccoArrs := batch(tobaccos)
+	rows := []*ent.Tobacco{}
+	bar := progressbar.Default(int64(len(tobaccos)), "Creating tobaccos")
+	for _, arr := range tobaccoArrs {
+		temp, err := tx.Tobacco.MapCreateBulk(arr, func(c *ent.TobaccoCreate, i int) {
+			t := arr[i]
+			c.SetStore(t.Store).
+				SetItem(t.Item).
+				SetLink(t.Link).
+				AddPrices()
+		}).Save(ctx)
+		if err != nil {
+			return err
+		}
+		rows = append(rows, temp...)
+		bar.Add(len(arr))
 	}
 	log.Printf("Created %d tobaccos", len(tobaccos))
 
-	bar := progressbar.Default(int64(len(rows)), "Creating prices")
-	tobaccoArrs := batch(tobaccos, 500)
-	for i, arr := range batch(rows, 500) {
+	bar = progressbar.Default(int64(len(rows)), "Creating prices")
+	for i, arr := range batch(rows) {
 		builders := []*ent.TobaccoPriceCreate{}
 		for j, t := range tobaccoArrs[i] {
 			for _, p := range t.Edges.Prices {
@@ -129,12 +137,17 @@ func portTobaccos(tx *ent.Tx) error {
 					SetTobacco(arr[j]))
 			}
 		}
+		c := float32(len(arr)) / float32(len(builders))
+		for _, sub_arr := range batch(builders) {
+			_, err = tx.TobaccoPrice.CreateBulk(sub_arr...).Save(ctx)
 
-		_, err = tx.TobaccoPrice.CreateBulk(builders...).Save(ctx)
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
+
+			bar.Add(int(c * float32(len(sub_arr))))
 		}
-		bar.Add(len(arr))
+
 	}
 	return nil
 }
@@ -295,8 +308,11 @@ func portCategories(tx *ent.Tx) error {
 
 func PortData() {
 	ctx := context.Background()
-	// WithTx(ctx, DB, portTobaccos)
-	err := util.WithTx(ctx, util.DB, portCategories)
+	err := util.WithTx(ctx, util.DB, portTobaccos)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = util.WithTx(ctx, util.DB, portCategories)
 	if err != nil {
 		log.Fatal(err)
 	}
