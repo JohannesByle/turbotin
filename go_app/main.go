@@ -18,17 +18,6 @@ import (
 	"golang.org/x/net/http2/h2c"
 )
 
-const (
-	green   = "\033[97;42m"
-	white   = "\033[90;47m"
-	yellow  = "\033[90;43m"
-	red     = "\033[97;41m"
-	blue    = "\033[97;44m"
-	magenta = "\033[97;45m"
-	cyan    = "\033[97;46m"
-	reset   = "\033[0m"
-)
-
 var (
 	STATIC_DIR = path.Clean("./build")
 	INDEX_FILE = path.Clean(path.Join(STATIC_DIR, "/index.html"))
@@ -79,7 +68,12 @@ func main() {
 	mux.Handle("/", fileHandler(http.FileServer(http.Dir(STATIC_DIR))))
 
 	log.Printf("listening on: %s", util.HOST)
-	err := http.ListenAndServe(util.HOST, h2c.NewHandler(mux, &http2.Server{}))
+	var err error
+	if util.HOST == ":443" {
+		err = http.ListenAndServeTLS(util.HOST, util.CERT_FILE, util.KEY_FILE, h2c.NewHandler(mux, &http2.Server{}))
+	} else {
+		err = http.ListenAndServe(util.HOST, h2c.NewHandler(mux, &http2.Server{}))
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
