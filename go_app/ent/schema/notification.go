@@ -2,7 +2,6 @@ package schema
 
 import (
 	"entgo.io/ent"
-	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -24,19 +23,17 @@ func (Notification) Fields() []ent.Field {
 
 func (Notification) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Edges("user").Edges("tag").Unique(),
+		index.Edges("user", "tag").Unique(),
 	}
 }
 
 func (Notification) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).
-			Ref("notifications").
 			Unique().
-			Annotations(entsql.OnDelete(entsql.Cascade)),
+			Ref("notifications"),
 		edge.From("tag", Tag.Type).
-			Ref("notifications").
 			Unique().
-			Annotations(entsql.OnDelete(entsql.Cascade)),
+			Ref("notifications"),
 	}
 }

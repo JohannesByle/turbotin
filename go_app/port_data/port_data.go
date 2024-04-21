@@ -3,11 +3,14 @@ package port_data
 import (
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/url"
 	"os"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"turbotin/ent"
@@ -19,11 +22,6 @@ import (
 )
 
 const BATCH_SIZE = 5000
-
-type tobaccoKey struct {
-	item string
-	link string
-}
 
 func batch[T any](in []T) [][]T {
 	var result = make([][]T, 0)
@@ -40,6 +38,11 @@ func batch[T any](in []T) [][]T {
 }
 
 func portTobaccos(tx *ent.Tx) error {
+	type tobaccoKey struct {
+		item string
+		link string
+	}
+
 	f, err := os.Open("../data/archive.csv")
 	if err != nil {
 		return err
@@ -126,10 +129,12 @@ func portTobaccos(tx *ent.Tx) error {
 	log.Printf("Created %d tobaccos", len(tobaccos))
 
 	bar = progressbar.Default(int64(len(rows)), "Creating prices")
+	numPrices := 0
 	for i, arr := range batch(rows) {
 		builders := []*ent.TobaccoPriceCreate{}
 		for j, t := range tobaccoArrs[i] {
 			for _, p := range t.Edges.Prices {
+				numPrices++
 				builders = append(builders, tx.TobaccoPrice.Create().
 					SetPrice(p.Price).
 					SetStock(p.Stock).
@@ -149,6 +154,7 @@ func portTobaccos(tx *ent.Tx) error {
 		}
 
 	}
+	log.Printf("Created %d prices", numPrices)
 	return nil
 }
 
@@ -159,7 +165,7 @@ func portCategories(tx *ent.Tx) error {
 	}
 	defer f.Close()
 
-	blendMap := map[string]map[string]bool{}
+	blendMap := map[string][]string{}
 	tobaccoBlendMap := map[string][]string{}
 
 	r := csv.NewReader(f)
@@ -184,11 +190,11 @@ func portCategories(tx *ent.Tx) error {
 
 		blends, ok := blendMap[brand]
 		if !ok {
-			blends = map[string]bool{}
-			blendMap[brand] = blends
+			blends = []string{}
 		}
-		blends[blend] = true
-
+		if slices.Index(blends, blend) < 0 {
+			blendMap[brand] = append(blends, blend)
+		}
 	}
 
 	ctx := context.Background()
@@ -213,10 +219,9 @@ func portCategories(tx *ent.Tx) error {
 	}
 	brands := []*ent.Tag{}
 	blends := []*ent.Tag{}
-
 	for brand, arr := range blendMap {
 		brands = append(brands, &ent.Tag{Value: brand})
-		for blend := range arr {
+		for _, blend := range arr {
 			blendTag := &ent.Tag{Value: blend}
 			blends = append(blends, blendTag)
 		}
@@ -230,6 +235,7 @@ func portCategories(tx *ent.Tx) error {
 		return err
 	}
 	log.Printf("Created %d brands", len(brands))
+
 	blends, err = tx.Tag.MapCreateBulk(blends, func(c *ent.TagCreate, i int) {
 		b := blends[i]
 		c.SetValue(b.Value).
@@ -238,26 +244,22 @@ func portCategories(tx *ent.Tx) error {
 	if err != nil {
 		return err
 	}
-	blendNameMap := map[string]*ent.Tag{}
-	for _, blend := range blends {
-		blendNameMap[blend.Value] = blend
-	}
 	log.Printf("Created %d blends", len(blends))
 
 	tagToTags := []*ent.TagToTag{}
 	i := 0
-	j := 0
-	for _, arr := range blendMap {
+	for _, brand := range brands {
+		arr := blendMap[brand.Value]
 		for range arr {
 			tagToTags = append(tagToTags, &ent.TagToTag{
 				Edges: ent.TagToTagEdges{
 					ParentTag: blends[i],
-					Tag:       brands[j],
+					Tag:       brand,
 				},
 			})
 			i++
 		}
-		j++
+
 	}
 	_, err = tx.TagToTag.MapCreateBulk(tagToTags, func(c *ent.TagToTagCreate, i int) {
 		t := tagToTags[i]
@@ -290,9 +292,7 @@ func portCategories(tx *ent.Tx) error {
 				Tobacco: tobacco,
 				Tag:     blend,
 			}})
-
 		}
-
 	}
 	_, err = tx.TobaccoToTag.MapCreateBulk(tobaccoToTags, func(c *ent.TobaccoToTagCreate, i int) {
 		t := tobaccoToTags[i]
@@ -306,14 +306,146 @@ func portCategories(tx *ent.Tx) error {
 	return services.AssertStructureValid(ctx, tx)
 }
 
+func portUsers(tx *ent.Tx) error {
+	ctx := context.Background()
+	type notification struct {
+		Brand    string      `json:"brand"`
+		Blend    string      `json:"blend"`
+		Stores   []string    `json:"stores"`
+		MaxPrice interface{} `json:"max_price"`
+	}
+	type blendKey struct {
+		brand string
+		blend string
+	}
+	links, err := tx.TagToTag.Query().WithTag().WithParentTag().All(ctx)
+	if err != nil {
+		return err
+	}
+	linkMap := map[blendKey]*ent.Tag{}
+	for _, link := range links {
+		key := blendKey{
+			brand: strings.ToLower(link.Edges.Tag.Value),
+			blend: strings.ToLower(link.Edges.ParentTag.Value),
+		}
+		linkMap[key] = link.Edges.ParentTag
+	}
+
+	f, err := os.Open("../data/user.csv")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	users := []*ent.User{}
+	r := csv.NewReader(f)
+	r.Read()
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		id, err := strconv.Atoi(record[1])
+		if err != nil {
+			return err
+		}
+		user := &ent.User{
+			ID:                       id,
+			Email:                    record[2],
+			Password:                 record[3],
+			EmailVerified:            record[5] == "1",
+			EmailCode:                record[6],
+			EmailCodeCreated:         time.Now(),
+			PasswordResetCode:        record[8],
+			IsAdmin:                  false,
+			LastEmailTime:            time.Now(),
+			PasswordResetCodeCreated: time.Now(),
+			Edges:                    ent.UserEdges{Notifications: []*ent.Notification{}},
+		}
+		if !util.EMAIL_REGEX.Match([]byte(user.Email)) && !user.EmailVerified {
+			continue
+		}
+		var notifications []notification
+		err = json.Unmarshal([]byte(record[7]), &notifications)
+		if err != nil {
+			return err
+		}
+
+		for _, notification := range notifications {
+			key := blendKey{
+				brand: strings.ToLower(notification.Brand),
+				blend: strings.ToLower(notification.Blend),
+			}
+			tag, ok := linkMap[key]
+			if !ok {
+				continue
+			}
+
+			user.Edges.Notifications = append(user.Edges.Notifications, &ent.Notification{
+				// TODO: fix these two
+				MaxPrice: 1,
+				Stores:   strings.Join(notification.Stores, ","),
+				Edges:    ent.NotificationEdges{Tag: tag, User: user},
+			})
+		}
+		users = append(users, user)
+
+	}
+	users, err = tx.User.MapCreateBulk(users, func(c *ent.UserCreate, i int) {
+		u := users[i]
+		c.SetEmail(u.Email).
+			SetPassword(u.Password).
+			SetEmailVerified(u.EmailVerified).
+			SetEmailCode(u.EmailCode).
+			SetEmailCodeCreated(u.EmailCodeCreated).
+			SetIsAdmin(u.IsAdmin).
+			SetLastEmailTime(u.LastEmailTime).
+			SetPasswordResetCodeCreated(u.PasswordResetCodeCreated)
+	}).Save(ctx)
+	if err != nil {
+		return err
+	}
+	log.Printf("Created %d users", len(users))
+
+	notifications := []*ent.Notification{}
+	for _, user := range users {
+		for _, notification := range user.Edges.Notifications {
+			notification.Edges.User = user
+			notifications = append(notifications, notification)
+		}
+	}
+	_, err = tx.Notification.MapCreateBulk(notifications, func(c *ent.NotificationCreate, i int) {
+		n := notifications[i]
+		c.SetMaxPrice(n.MaxPrice).
+			SetStores(n.Stores).
+			SetMaxPrice(n.MaxPrice).
+			SetUser(n.Edges.User).
+			SetTag(n.Edges.Tag)
+
+	}).Save(ctx)
+	log.Printf("Created %d notifications", len(notifications))
+
+	return err
+}
+
 func PortData() {
 	ctx := context.Background()
+
 	err := util.WithTx(ctx, util.DB, portTobaccos)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	err = util.WithTx(ctx, util.DB, portCategories)
 	if err != nil {
 		log.Fatal(err)
 	}
+	err = util.WithTx(ctx, util.DB, portUsers)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 }

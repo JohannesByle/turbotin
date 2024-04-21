@@ -27,7 +27,8 @@ func (Tag) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("parent_tag_links", TagToTag.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("notifications", Notification.Type),
+		edge.To("notifications", Notification.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("category", Category.Type).Ref("tags").Unique(),
 	}
 }
