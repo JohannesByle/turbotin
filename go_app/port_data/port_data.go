@@ -23,6 +23,45 @@ import (
 
 const BATCH_SIZE = 5000
 
+var STORES = map[string]protos.Store{
+	"UNSPECIFIED":     protos.Store_STORE_UNSPECIFIED,
+	"4NOGGINS":        protos.Store_STORE_4NOGGINS,
+	"TOPHAT":          protos.Store_STORE_TOPHAT,
+	"CUPOJOES":        protos.Store_STORE_CUPOJOES,
+	"MARSCIGARS":      protos.Store_STORE_MARSCIGARS,
+	"MILAN":           protos.Store_STORE_MILAN,
+	"SMOKINGPIPES":    protos.Store_STORE_SMOKINGPIPES,
+	"NICEASHCIGARS":   protos.Store_STORE_NICEASHCIGARS,
+	"IWANRIES":        protos.Store_STORE_IWANRIES,
+	"MCCRANIES":       protos.Store_STORE_MCCRANIES,
+	"BOSWELL":         protos.Store_STORE_BOSWELL,
+	"LILBROWN":        protos.Store_STORE_LILBROWN,
+	"WINDYCITYCIGARS": protos.Store_STORE_WINDYCITYCIGARS,
+	"BNB":             protos.Store_STORE_BNB,
+	"THEBRIARY":       protos.Store_STORE_THEBRIARY,
+	"KBVEN":           protos.Store_STORE_KBVEN,
+	"TOBACCOPIPES":    protos.Store_STORE_TOBACCOPIPES,
+	"KINGSMOKING":     protos.Store_STORE_KINGSMOKING,
+	"COUNTRYSQUIRE":   protos.Store_STORE_COUNTRYSQUIRE,
+	"PIPESANDCIGARS":  protos.Store_STORE_PIPESANDCIGARS,
+	"WATCHCITYCIGAR":  protos.Store_STORE_WATCHCITYCIGAR,
+	"THESTORYTELLERS": protos.Store_STORE_THESTORYTELLERS,
+	"PAYLESS":         protos.Store_STORE_PAYLESS,
+	"HILANDSCIGARS":   protos.Store_STORE_HILANDSCIGARS,
+	"PIPEANDLEAF":     protos.Store_STORE_PIPEANDLEAF,
+	"CIGARSINTL":      protos.Store_STORE_CIGARSINTL,
+	"EACAREY":         protos.Store_STORE_EACAREY,
+	"PIPENOOK":        protos.Store_STORE_PIPENOOK,
+	"WILKE":           protos.Store_STORE_WILKE,
+	"SMOKERSHAVEN":    protos.Store_STORE_SMOKERSHAVEN,
+	"BLACKCATCIGARS":  protos.Store_STORE_BLACKCATCIGARS,
+	"ANSTEADS":        protos.Store_STORE_ANSTEADS,
+	"CDMCIGARS":       protos.Store_STORE_CDMCIGARS,
+	"LJPERETTI":       protos.Store_STORE_LJPERETTI,
+	"OUTWEST":         protos.Store_STORE_OUTWEST,
+	"JUST4HIM":        protos.Store_STORE_JUST4HIM,
+}
+
 func batch[T any](in []T) [][]T {
 	var result = make([][]T, 0)
 
@@ -338,6 +377,7 @@ func portUsers(tx *ent.Tx) error {
 	defer f.Close()
 
 	users := []*ent.User{}
+	notificationMap := map[string][]*ent.Notification{}
 	r := csv.NewReader(f)
 	r.Read()
 	for {
@@ -374,6 +414,8 @@ func portUsers(tx *ent.Tx) error {
 			return err
 		}
 
+		tags := map[int]bool{}
+		i := 0
 		for _, notification := range notifications {
 			key := blendKey{
 				brand: strings.ToLower(notification.Brand),
@@ -383,17 +425,36 @@ func portUsers(tx *ent.Tx) error {
 			if !ok {
 				continue
 			}
+			if tags[tag.ID] {
+				continue
+			}
+			tags[tag.ID] = true
+
+			stores := []string{}
+			for _, store := range notification.Stores {
+				s, ok := STORES[strings.ToUpper(store)]
+				if ok {
+					stores = append(stores, strconv.Itoa(int(s)))
+				}
+			}
 
 			user.Edges.Notifications = append(user.Edges.Notifications, &ent.Notification{
-				// TODO: fix these two
-				MaxPrice: 1,
-				Stores:   strings.Join(notification.Stores, ","),
-				Edges:    ent.NotificationEdges{Tag: tag, User: user},
+				Edges: ent.NotificationEdges{Tag: tag, User: user},
 			})
+
+			if len(stores) > 0 {
+				user.Edges.Notifications[i].Stores = "[" + strings.Join(stores, ",") + "]"
+			}
+			switch maxPrice := notification.MaxPrice.(type) {
+			case float64:
+				user.Edges.Notifications[i].MaxPrice = int16(maxPrice)
+			}
+			i++
 		}
 		users = append(users, user)
-
+		notificationMap[user.Email] = user.Edges.Notifications
 	}
+
 	users, err = tx.User.MapCreateBulk(users, func(c *ent.UserCreate, i int) {
 		u := users[i]
 		c.SetEmail(u.Email).
@@ -411,19 +472,24 @@ func portUsers(tx *ent.Tx) error {
 	log.Printf("Created %d users", len(users))
 
 	notifications := []*ent.Notification{}
+
 	for _, user := range users {
-		for _, notification := range user.Edges.Notifications {
+		for _, notification := range notificationMap[user.Email] {
 			notification.Edges.User = user
 			notifications = append(notifications, notification)
 		}
 	}
 	_, err = tx.Notification.MapCreateBulk(notifications, func(c *ent.NotificationCreate, i int) {
 		n := notifications[i]
-		c.SetMaxPrice(n.MaxPrice).
-			SetStores(n.Stores).
-			SetMaxPrice(n.MaxPrice).
-			SetUser(n.Edges.User).
-			SetTag(n.Edges.Tag)
+		c.SetUser(n.Edges.User).
+			SetTag(n.Edges.Tag).
+			SetExcludeStores(false)
+		if len(n.Stores) > 0 {
+			c.SetStores(n.Stores)
+		}
+		if n.MaxPrice > 0 {
+			c.SetMaxPrice(n.MaxPrice)
+		}
 
 	}).Save(ctx)
 	log.Printf("Created %d notifications", len(notifications))
