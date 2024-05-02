@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -23,5 +24,11 @@ func (TobaccoPrice) Fields() []ent.Field {
 func (TobaccoPrice) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("tobacco", Tobacco.Type).Ref("prices").Unique(),
+	}
+}
+
+func (TobaccoPrice) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("time"),
 	}
 }
