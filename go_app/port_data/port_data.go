@@ -21,7 +21,7 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
-const BATCH_SIZE = 5000
+const BATCH_SIZE = 4000
 
 var STORES = map[string]protos.Store{
 	"UNSPECIFIED":     protos.Store_STORE_UNSPECIFIED,
@@ -170,21 +170,23 @@ func portTobaccos(tx *ent.Tx) error {
 	bar = progressbar.Default(int64(len(rows)), "Creating prices")
 	numPrices := 0
 	for i, arr := range batch(rows) {
-		builders := []*ent.TobaccoPriceCreate{}
+		prices := []*ent.TobaccoPrice{}
 		for j, t := range tobaccoArrs[i] {
 			for _, p := range t.Edges.Prices {
 				numPrices++
-				builders = append(builders, tx.TobaccoPrice.Create().
-					SetPrice(p.Price).
-					SetStock(p.Stock).
-					SetTime(p.Time).
-					SetTobacco(arr[j]))
+				p.Edges.Tobacco = arr[j]
+				prices = append(prices, p)
 			}
 		}
-		c := float32(len(arr)) / float32(len(builders))
-		for _, sub_arr := range batch(builders) {
-			_, err = tx.TobaccoPrice.CreateBulk(sub_arr...).Save(ctx)
-
+		c := float32(len(arr)) / float32(len(prices))
+		for _, sub_arr := range batch(prices) {
+			err := tx.TobaccoPrice.MapCreateBulk(sub_arr, func(c *ent.TobaccoPriceCreate, i int) {
+				p := sub_arr[i]
+				c.SetPrice(p.Price).
+					SetStock(p.Stock).
+					SetTime(p.Time).
+					SetTobaccoID(p.Edges.Tobacco.ID)
+			}).Exec(ctx)
 			if err != nil {
 				return err
 			}
