@@ -5,15 +5,16 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 	"turbotin/ent"
 	"turbotin/ent/tobacco"
 	"turbotin/ent/tobaccoprice"
+
 	pb "turbotin/protos"
 
 	. "turbotin/util"
 
 	. "connectrpc.com/connect"
-	"entgo.io/ent/dialect/sql"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"golang.org/x/net/context"
@@ -28,24 +29,34 @@ func inStock(str string) bool {
 }
 
 func (s *Public) TodaysTobaccos(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.ObsTobaccoList], error) {
+	var v []struct {
+		Max time.Time
+	}
+	err := DB.TobaccoPrice.
+		Query().
+		Aggregate(ent.Max(tobaccoprice.FieldTime)).
+		Scan(ctx, &v)
+	if err != nil {
+		return InternalError[pb.ObsTobaccoList](err)
+	}
+	max := v[0].Max.Add(time.Duration(-2) * time.Hour)
 
 	rows, err := DB.TobaccoPrice.Query().
-		Where(func(s *sql.Selector) {
-			t := sql.Table(tobaccoprice.Table)
-			s.Where(sql.GTE(tobaccoprice.FieldTime, sql.
-				SelectExpr(sql.ExprFunc(func(b *sql.Builder) {
-					b.WriteString(sql.Max(t.C(tobaccoprice.FieldTime)))
-					b.WriteOp(sql.OpSub)
-					b.WriteString(" INTERVAL 4 HOUR")
-				})).
-				From(t)))
-		}).WithTobacco().All(ctx)
+		WithTobacco().
+		Where(tobaccoprice.TimeGTE(max)).All(ctx)
+
 	if err != nil {
 		return InternalError[pb.ObsTobaccoList](err)
 	}
 
-	resp := &pb.ObsTobaccoList{Items: []*pb.ObsTobacco{}}
+	dups := map[int]bool{}
+	resp := &pb.ObsTobaccoList{}
 	for _, row := range rows {
+		_, ok := dups[row.Edges.Tobacco.ID]
+		if ok {
+			continue
+		}
+		dups[row.Edges.Tobacco.ID] = true
 		t := row.Edges.Tobacco
 		resp.Items = append(resp.Items, &pb.ObsTobacco{
 			Item:      t.Item,
