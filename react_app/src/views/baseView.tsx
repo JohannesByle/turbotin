@@ -15,7 +15,7 @@ import Typography from "@mui/material/Typography";
 import useScrollTrigger from "@mui/material/useScrollTrigger";
 import { isUndefined, toPairs } from "lodash";
 import React, { Suspense, useMemo } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { LOGO_URL, PALETTE, TAB_OPACITY, TRoute } from "../consts";
 import * as auth from "../protos/turbotin-Auth_connectquery";
 import ROUTES from "../routes";
@@ -51,6 +51,7 @@ const BaseView = (): JSX.Element => {
 
   const route = basePath(location.pathname);
 
+  if (route === "") return <Navigate to={TRoute.full_table} />;
   return (
     <Box
       sx={{

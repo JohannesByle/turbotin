@@ -71,7 +71,7 @@ const TobaccoLinksGrid = (props: TProps): JSX.Element => {
     (): Array<GridColDef<TRow>> => [
       {
         field: "Name",
-        valueGetter: ({ row }) => row.tobacco.item,
+        valueGetter: (_, row) => row.tobacco.item,
         flex: 1,
       },
       ...getValidCats(catMap, tagMap, tagLinks)
@@ -81,8 +81,8 @@ const TobaccoLinksGrid = (props: TProps): JSX.Element => {
             field: String(c.id),
             headerName: c.name,
             flex: 1,
-            valueGetter: ({ row }) => row[c.id]?.value,
-            valueSetter: ({ row, value }) =>
+            valueGetter: (_, row) => row[c.id]?.value,
+            valueSetter: (value, row) =>
               value instanceof Tag ? { ...row, [c.id]: value } : row,
             editable: true,
             type: "string",

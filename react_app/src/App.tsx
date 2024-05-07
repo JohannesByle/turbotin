@@ -5,8 +5,12 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { toPairs } from "lodash";
 import React from "react";
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import { MS_PER_MINUTE, THEME } from "./consts";
+import {
+  Navigate,
+  RouterProvider,
+  createBrowserRouter,
+} from "react-router-dom";
+import { MS_PER_MINUTE, THEME, TRoute } from "./consts";
 import ROUTES from "./routes";
 import { FlashesProvider } from "./util/flash";
 import AuthProvider from "./views/auth/authProvider";
@@ -23,6 +27,7 @@ export const router = createBrowserRouter([
       element: <AuthProvider level={level}>{element}</AuthProvider>,
       ...details,
     })),
+    errorElement: <Navigate to={TRoute.full_table} />,
   },
 ]);
 
@@ -40,7 +45,7 @@ function App(): JSX.Element {
       <QueryClientProvider client={client}>
         <FlashesProvider>
           <CssBaseline />
-          <RouterProvider router={router} fallbackElement={<></>} />
+          <RouterProvider router={router} />
         </FlashesProvider>
       </QueryClientProvider>
     </ThemeProvider>

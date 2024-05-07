@@ -25,7 +25,7 @@ export const FILTER_COL: GridColDef<TRow> = {
           ([, v]) => !isUndefined(v)
         ) as Array<[keyof TFilter, unknown]>;
         if (filters.length === 0) return null;
-        return ({ row }) =>
+        return (_, row) =>
           every(filters.map(([k]) => FILTER_FNS[k](row, filter)));
       },
     },

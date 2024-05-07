@@ -126,15 +126,15 @@ const FullTable = (): JSX.Element => {
     [tobaccos, tobaccoTags, catMap]
   );
 
-  const columns: Array<GridColDef<TRow>> = useMemo(
-    () => [
+  const columns = useMemo(
+    (): Array<GridColDef<TRow>> => [
       FILTER_COL,
       {
         field: "store" satisfies keyof ObsTobacco,
         flex: 1,
         headerName: "Store",
         hideable: false,
-        valueGetter: ({ row }) => STORE_TO_NAME[row.store],
+        valueFormatter: (_, row) => STORE_TO_NAME[row.store],
       },
       {
         field: "item" satisfies keyof ObsTobacco,
@@ -158,13 +158,12 @@ const FullTable = (): JSX.Element => {
         ),
         hideable: false,
       },
-
       {
         field: "price",
         flex: 1,
         headerName: "Price",
         hideable: false,
-        valueGetter: ({ row }) => price(row),
+        valueGetter: (_, row) => price(row),
         renderCell: ({ row }) => row.priceStr,
         type: "number",
       },
@@ -172,15 +171,15 @@ const FullTable = (): JSX.Element => {
         field: "time" satisfies keyof ObsTobacco,
         flex: 0.5,
         headerName: "Last updated",
-        valueGetter: ({ row: { time } }) =>
+        valueGetter: (_, { time }) =>
           dayjs((Number(time?.seconds) ?? 0) * MS_PER_SECOND),
-        valueFormatter: ({ value }) => (value as Dayjs).fromNow(),
+        valueFormatter: (value) => (value as Dayjs).fromNow(),
         hideable: false,
       },
       ...cats.map(
         (c): GridColDef<TRow> => ({
           field: String(c.id),
-          valueGetter: ({ row }) => row.tagValues[c.name],
+          valueGetter: (_, row) => row.tagValues[c.name],
           headerName: c.name,
           flex: 2,
         })
@@ -213,19 +212,6 @@ const FullTable = (): JSX.Element => {
             <KebapMenu />
           </IconButton>
         ),
-      },
-      {
-        field: "delete",
-        hideable: false,
-        renderCell: ({ row }) =>
-          row.inStock ? (
-            <></>
-          ) : (
-            <Tooltip title="Out of stock">
-              <ProductionQuantityLimits color="error" />
-            </Tooltip>
-          ),
-        ...ICON_COL_PROPS,
       },
     ],
     [cats, filter.item]

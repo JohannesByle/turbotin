@@ -8,13 +8,13 @@ import React, { useMemo } from "react";
 import { ICON_COL_PROPS, PALETTE } from "../../../consts";
 import * as admin from "../../../protos/turbotin-Admin_connectquery";
 import {
-  getTags,
   getTagToTags,
+  getTags,
 } from "../../../protos/turbotin-Public_connectquery";
 import { Category, Tag, TagToTag } from "../../../protos/turbotin_pb";
 import { TSetState } from "../../../util";
 import TagEditCell from "../editCell";
-import { getChildren, getValidCats, NULL_CAT, TRow } from "./util";
+import { NULL_CAT, TRow, getChildren, getValidCats } from "./util";
 
 type TProps = {
   cat: Category;
@@ -101,20 +101,20 @@ const TagGrid = (props: TProps): JSX.Element => {
     const result = getValidCats(cat, catMap, tagMap, links)
       .filter((c) => c !== NULL_CAT)
       .map(
-        (c): GridColDef<TRow, string | Tag> => ({
+        (c): GridColDef<TRow> => ({
           field: String(c.id),
           headerName: c.name,
           flex: 1,
-          valueGetter: ({ row }) => row[c.id]?.value,
+          valueGetter: (_, row): string => row[c.id]?.value,
           valueSetter:
             c === cat
-              ? ({ row, value }) => {
+              ? (value: string | Tag, row) => {
                   if (value instanceof Tag) return row;
                   const tag = row[c.id].clone();
                   tag.value = value;
                   return { ...row, [c.id]: tag };
                 }
-              : ({ row, value }) =>
+              : (value: string | Tag, row) =>
                   value instanceof Tag ? { ...row, [c.id]: value } : row,
           editable: true,
           type: "string",

@@ -122,7 +122,7 @@ const Notifications = (): JSX.Element => {
       {
         field: "name",
         headerName: "Name",
-        valueGetter: ({ row }) => row.tag.value,
+        valueGetter: (_, row) => row.tag.value,
         flex: 1,
       },
       {
