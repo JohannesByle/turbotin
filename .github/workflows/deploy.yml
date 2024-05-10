@@ -29,6 +29,7 @@ jobs:
           docker build . --file Dockerfile --tag $tag
           docker push $tag
 
+          mkdir ~/.ssh/
           echo "${{ secrets.PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 400 ~/.ssh/id_ed25519
           ssh-keyscan "${{ secrets.LINODE_IP }}" > ~/.ssh/known_hosts
