@@ -43,3 +43,4 @@
 /go_app/ent/*
 !/go_app/ent/schema/
 !/go_app/ent/generate.go
+.secrets
