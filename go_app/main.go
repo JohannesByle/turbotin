@@ -29,11 +29,12 @@ func fileHandler(h http.Handler) http.Handler {
 		info, err := os.Stat(filePath)
 		args := util.LogArgs{Path: req.URL.Path}
 		start := time.Now()
-		writer.Header().Set("Cache-Control", "max-age=31536000")
 
 		if errors.Is(err, os.ErrNotExist) || !strings.HasPrefix(filePath, STATIC_DIR) || info.IsDir() {
+			writer.Header().Set("Cache-Control", "no-cache")
 			http.ServeFile(writer, req, INDEX_FILE)
 		} else {
+			writer.Header().Set("Cache-Control", "max-age=31536000")
 			allowBr := strings.Contains(req.Header.Get("Accept-Encoding"), "br")
 			brFile := filePath + ".br"
 			_, err := os.Stat(brFile)
