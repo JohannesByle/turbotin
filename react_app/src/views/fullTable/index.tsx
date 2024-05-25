@@ -11,6 +11,7 @@ import {
   FormLabel,
   IconButton,
   Tooltip,
+  useTheme,
 } from "@mui/material";
 import {
   DataGrid,
@@ -120,6 +121,7 @@ const FullTable = (): JSX.Element => {
 
   const filterModel = useMemo(() => calcFilterModel(filter), [filter]);
   const deferredFilterModel = useDeferredValue(filterModel);
+  const { palette } = useTheme();
 
   const rows = useMemo(
     (): TRow[] =>
@@ -150,12 +152,16 @@ const FullTable = (): JSX.Element => {
         field: "item" satisfies keyof ObsTobacco,
         flex: 2,
         headerName: "Name",
-        renderCell: ({ row: { item, link } }) => (
+        renderCell: ({ row: { item, link, inStock } }) => (
           <a
             href={link}
             target={"_blank"}
             rel={"noreferrer"}
-            style={{ textOverflow: "ellipsis", overflow: "hidden" }}
+            style={{
+              textOverflow: "ellipsis",
+              overflow: "hidden",
+              color: isMobile && !inStock ? palette.error.main : undefined,
+            }}
           >
             {!isString(filter.item) ||
             isEmpty(filter.item) ||
@@ -224,7 +230,7 @@ const FullTable = (): JSX.Element => {
         ),
       },
     ],
-    [cats, filter.item]
+    [cats, filter.item, isMobile, palette.error.main]
   );
 
   const actions = useMemo(
