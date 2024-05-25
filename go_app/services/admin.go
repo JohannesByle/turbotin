@@ -15,11 +15,11 @@ import (
 type Admin struct{}
 
 var (
-	MISSING_CAT  = errors.New("Missing category")
-	TAG_CYCLE    = errors.New("Tag cycle detected")
-	CAT_CYCLE    = errors.New("Category cycle detected")
-	NON_ROOT_CAT = errors.New("Tobacco links must all be root categories")
-	CAT_BRANCH   = errors.New("One child has more than one parent in a single category")
+	MISSING_CAT  = errors.New("missing category")
+	TAG_CYCLE    = errors.New("tag cycle detected")
+	CAT_CYCLE    = errors.New("category cycle detected")
+	NON_ROOT_CAT = errors.New("tobacco links must all be root categories")
+	CAT_BRANCH   = errors.New("one child has more than one parent in a single category")
 )
 
 func recurse(id int, tagMap map[int][]int, catMap map[int]int, seenTags map[int]bool, seenCats map[int]map[int]bool) error {
@@ -189,6 +189,26 @@ func (s *Admin) CreateTobaccoToTag(ctx context.Context, req *Request[pb.TobaccoT
 			SetTagID(int(item.TagId)).
 			SetTobaccoID(int(item.TobaccoId)).
 			Save(ctx)
+		if err != nil {
+			return err
+		}
+		return AssertStructureValid(ctx, tx)
+	})
+	if err != nil {
+		return FlashError[pb.EmptyArgs](err.Error(), CodeInvalidArgument)
+	}
+	return NewResponse[pb.EmptyArgs](nil), nil
+}
+
+func (s *Admin) CreateTobaccoToTags(ctx context.Context, req *Request[pb.TobaccoToTagList]) (*Response[pb.EmptyArgs], error) {
+	err := WithTx(ctx, DB, func(tx *ent.Tx) error {
+		items := req.Msg.Items
+		_, err := tx.TobaccoToTag.MapCreateBulk(items, func(c *ent.TobaccoToTagCreate, i int) {
+			item := items[i]
+			c.SetTagID(int(item.TagId)).
+				SetTobaccoID(int(item.TobaccoId)).
+				Save(ctx)
+		}).Save(ctx)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,13 @@
-import { useQuery } from "@connectrpc/connect-query";
-import { FilterAlt } from "@mui/icons-material";
 import {
+  createConnectQueryKey,
+  useMutation,
+  useQuery,
+} from "@connectrpc/connect-query";
+import { FilterAlt, Save } from "@mui/icons-material";
+import { LoadingButton } from "@mui/lab";
+import {
+  Autocomplete,
+  AutocompleteRenderInputParams,
   Box,
   FormControl,
   InputLabel,
@@ -8,9 +15,12 @@ import {
   Select,
   TextField,
 } from "@mui/material";
-import { GridFilterModel } from "@mui/x-data-grid";
+import { GridFilterModel, GridRowSelectionModel } from "@mui/x-data-grid";
+import { useQueryClient } from "@tanstack/react-query";
+import { groupBy, isNull, sortBy } from "lodash";
 import React, { useMemo, useState } from "react";
 import { EMPTY_ARR, PALETTE } from "../../../consts";
+import * as admin from "../../../protos/turbotin-Admin_connectquery";
 import {
   getCategories,
   getTagToTags,
@@ -18,10 +28,21 @@ import {
   getTobaccoToTags,
   getTobaccos,
 } from "../../../protos/turbotin-Public_connectquery";
+import { Category, Tag, TobaccoToTag } from "../../../protos/turbotin_pb";
 import TobaccoLinksGrid from "./tobaccoLinksGrid";
 import { OPERATOR, getCats } from "./util";
 
 const NAME = "Name";
+
+const getOptionLabel = (t: Tag): string => t.value ?? "";
+const getOptionKey = (t: Tag): string | number => t.id ?? "";
+const renderInput = (params: AutocompleteRenderInputParams): JSX.Element => (
+  <TextField
+    {...params}
+    label="Value"
+    sx={{ backgroundColor: PALETTE.background.paper }}
+  />
+);
 
 const TobaccoLinks = (): JSX.Element => {
   const { data: tags_ } = useQuery(getTags);
@@ -37,11 +58,24 @@ const TobaccoLinks = (): JSX.Element => {
   const tobaccos = tobaccos_?.items ?? EMPTY_ARR;
 
   const [filterModel, setFilterModel] = useState<GridFilterModel>();
-
+  const [tag_, setTag] = useState<Tag | null>(null);
   const [col, setCol] = useState<string>(NAME);
+  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>(
+    []
+  );
+  const [cat_, setCat] = useState<Category>();
+
+  const cat = cat_ ?? cats[0];
+  const tag = tag_?.categoryId === cat?.id ? tag_ : null;
+
+  const { mutateAsync: createTobaccoToTags } = useMutation(
+    admin.createTobaccoToTags
+  );
+  const queryClient = useQueryClient();
 
   const tagMap = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
   const catMap = useMemo(() => new Map(cats.map((c) => [c.id, c])), [cats]);
+  const catValues = useMemo(() => groupBy(tags, (t) => t.categoryId), [tags]);
 
   const children = getCats(catMap, tagMap, links);
 
@@ -98,6 +132,51 @@ const TobaccoLinks = (): JSX.Element => {
             endAdornment: <FilterAlt sx={{ color: PALETTE.text.disabled }} />,
           }}
         />
+        <Box sx={{ mr: "auto" }} />
+        <FormControl>
+          <InputLabel>Edit</InputLabel>
+          <Select
+            value={cat?.name}
+            label="Edit"
+            onChange={(e) =>
+              setCat(cats.find((c) => c.name === e.target.value))
+            }
+            sx={{ backgroundColor: PALETTE.background.paper, minWidth: 100 }}
+          >
+            {cats.map((c) => (
+              <MenuItem key={c.name} value={c.name}>
+                {c.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Autocomplete
+          value={tag}
+          options={sortBy(catValues[cat?.id] ?? [], (c) => c.value)}
+          onChange={(e, value) => setTag(value)}
+          renderInput={renderInput}
+          getOptionLabel={getOptionLabel}
+          getOptionKey={getOptionKey}
+          openOnFocus
+          sx={{ minWidth: 300 }}
+        />
+        <LoadingButton
+          startIcon={<Save />}
+          disabled={selectionModel.length === 0 || isNull(tag)}
+          onClick={async (e) => {
+            if (isNull(tag)) return;
+            const items = selectionModel.map(
+              (id) => new TobaccoToTag({ tagId: tag.id, tobaccoId: Number(id) })
+            );
+            await createTobaccoToTags({ items });
+            await queryClient.invalidateQueries({
+              queryKey: createConnectQueryKey(getTobaccoToTags),
+            });
+          }}
+          loading={queryClient.isMutating() > 0}
+        >
+          Save{selectionModel.length === 0 ? "" : ` (${selectionModel.length})`}
+        </LoadingButton>
       </Box>
       <Box sx={{ flex: 1, height: "100%", minWidth: 0, p: 2, minHeight: 0 }}>
         <TobaccoLinksGrid
@@ -108,6 +187,8 @@ const TobaccoLinks = (): JSX.Element => {
           filterModel={filterModel}
           tagLinks={tagLinks}
           tobaccos={tobaccos}
+          selectionModel={selectionModel}
+          setSelectionModel={setSelectionModel}
         />
       </Box>
     </Box>

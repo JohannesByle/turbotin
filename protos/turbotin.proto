@@ -172,7 +172,7 @@ message TobaccoPrices {
 
 service Notifications {
   rpc GetNotifications(EmptyArgs) returns (NotificationList) {}
-  rpc UpdateNotification(Notification) returns (EmptyResponse){}
+  rpc UpdateNotification(Notification) returns (EmptyResponse) {}
   rpc CreateNotification(Notification) returns (EmptyResponse) {}
   rpc DeleteNotifications(IntegerList) returns (EmptyResponse) {}
 }
@@ -192,10 +192,10 @@ message NotificationList {
 service Admin {
   rpc UpdateTobaccoToTag(TobaccoToTag) returns (EmptyArgs) {}
   rpc CreateTobaccoToTag(TobaccoToTag) returns (EmptyArgs) {}
+  rpc CreateTobaccoToTags(TobaccoToTagList) returns (EmptyArgs) {}
 
   rpc UpdateTagToTag(TagToTag) returns (EmptyArgs) {}
   rpc CreateTagToTag(TagToTag) returns (EmptyArgs) {}
-
 
   rpc UpdateTag(Tag) returns (EmptyArgs) {}
   rpc CreateTag(Tag) returns (EmptyArgs) {}

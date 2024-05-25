@@ -1,5 +1,11 @@
 import { createConnectQueryKey, useMutation } from "@connectrpc/connect-query";
-import { DataGrid, GridColDef, GridFilterModel } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  DataGridProps,
+  GridColDef,
+  GridFilterModel,
+  GridRowSelectionModel,
+} from "@mui/x-data-grid";
 import { useQueryClient } from "@tanstack/react-query";
 import { fromPairs, groupBy, isUndefined, sortBy, toPairs } from "lodash";
 import React, { useMemo } from "react";
@@ -24,6 +30,8 @@ type TProps = {
   tagMap: Map<number, Tag>;
   catMap: Map<number, Category>;
   filterModel?: GridFilterModel;
+  selectionModel?: GridRowSelectionModel;
+  setSelectionModel?: DataGridProps["onRowSelectionModelChange"];
 };
 
 function tagsToRows(
@@ -49,8 +57,17 @@ function tagsToRows(
 const getRowId = (row: TRow): number => row.tobacco.id;
 
 const TobaccoLinksGrid = (props: TProps): JSX.Element => {
-  const { tags, links, catMap, tagMap, filterModel, tobaccos, tagLinks } =
-    props;
+  const {
+    tags,
+    links,
+    catMap,
+    tagMap,
+    filterModel,
+    tobaccos,
+    tagLinks,
+    selectionModel,
+    setSelectionModel,
+  } = props;
 
   const catValues = useMemo(() => groupBy(tags, (t) => t.categoryId), [tags]);
 
@@ -141,6 +158,9 @@ const TobaccoLinksGrid = (props: TProps): JSX.Element => {
         }
         return oldRow;
       }}
+      checkboxSelection
+      rowSelectionModel={selectionModel}
+      onRowSelectionModelChange={setSelectionModel}
     />
   );
 };
