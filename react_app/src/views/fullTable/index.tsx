@@ -14,8 +14,10 @@ import {
 } from "@mui/material";
 import {
   DataGrid,
+  DataGridProps,
   GridColDef,
   GridColumnVisibilityModel,
+  GridToolbarQuickFilter,
 } from "@mui/x-data-grid";
 import { GridInitialStateCommunity } from "@mui/x-data-grid/models/gridStateCommunity";
 import dayjs, { Dayjs } from "dayjs";
@@ -38,18 +40,26 @@ import { useScreenSize } from "../../util";
 import { ActionMenu, TAction } from "../../util/actions";
 import BoldSubStr from "../../util/components/boldSubStr";
 import { useTags } from "../../util/tags";
-import Filters from "./filters";
 import {
-  calcFilterModel,
   FILTER_COL,
   FILTER_FIELD,
   TFilter,
+  calcFilterModel,
 } from "./filterUtil";
-import { price, TRow } from "./util";
+import Filters from "./filters";
+import { TRow, price } from "./util";
 
 type TColVisibilityModel = Partial<
   Record<keyof ObsTobacco | typeof FILTER_FIELD | "price" | "kebap", boolean>
 >;
+
+const SLOTS = {
+  toolbar: GridToolbarQuickFilter,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any as DataGridProps["slots"];
+const SLOT_PROPS: DataGridProps["slotProps"] = {
+  toolbar: { sx: { mt: 1, mx: 1 } },
+};
 
 const MOBILE_COLS: TColVisibilityModel = {
   [FILTER_FIELD]: false,
@@ -312,13 +322,15 @@ const FullTable = (): JSX.Element => {
           loading={isFetching}
           density={"compact"}
           columnVisibilityModel={visibiltyModel}
-          filterModel={deferredFilterModel}
+          filterModel={isMobile ? undefined : deferredFilterModel}
           initialState={INITIAL_STATE}
           getRowId={getRowId}
           disableColumnFilter
           disableColumnSelector
           disableColumnMenu
           autoPageSize
+          slots={isMobile ? SLOTS : undefined}
+          slotProps={isMobile ? SLOT_PROPS : undefined}
         />
       </Box>
     </Box>
