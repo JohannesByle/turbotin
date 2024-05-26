@@ -68,6 +68,9 @@ func main() {
 	mux.Handle(protosconnect.NewNotificationsHandler(&services.Notifications{}, opts))
 	mux.Handle("/", fileHandler(http.FileServer(http.Dir(STATIC_DIR))))
 
+	if util.EXTRA_LOGGING {
+		mux = LoggingWrapper(mux, nil)
+	}
 	log.Printf("listening on: %s", util.HOST)
 	var err error
 	if util.HOST == ":443" {
@@ -78,4 +81,24 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func LoggingWrapper(mux *http.ServeMux, middleware func(http.Handler) http.Handler) *http.ServeMux {
+	wrappedMux := http.NewServeMux()
+
+	wrappedMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("|%s", strings.Join([]string{
+			r.URL.Path,
+			r.RemoteAddr,
+			r.Header.Get("Referer"),
+			r.Header.Get("Sec-Ch-Ua"),
+			r.Header.Get("Sec-Ch-Ua-Mobile"),
+			r.Header.Get("Sec-Ch-Ua-Platform"),
+			r.Header.Get("User-Agent"),
+		}, ","))
+
+		mux.ServeHTTP(w, r)
+	})
+
+	return wrappedMux
 }
