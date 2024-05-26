@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -87,7 +88,7 @@ func LoggingWrapper(mux *http.ServeMux, middleware func(http.Handler) http.Handl
 	wrappedMux := http.NewServeMux()
 
 	wrappedMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("|%s", strings.Join([]string{
+		fmt.Printf("|%s", strings.Join([]string{
 			r.URL.Path,
 			r.RemoteAddr,
 			r.Header.Get("Referer"),
