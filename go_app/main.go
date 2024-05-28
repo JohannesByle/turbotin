@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -89,7 +90,7 @@ func LoggingWrapper(mux *http.ServeMux, middleware func(http.Handler) http.Handl
 
 	wrappedMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("|%s\n", strings.Join([]string{
-			r.URL.Path,
+			url.PathEscape(r.URL.Path),
 			r.RemoteAddr,
 			r.Header.Get("Referer"),
 			r.Header.Get("Sec-Ch-Ua"),
@@ -97,7 +98,6 @@ func LoggingWrapper(mux *http.ServeMux, middleware func(http.Handler) http.Handl
 			r.Header.Get("Sec-Ch-Ua-Platform"),
 			r.Header.Get("User-Agent"),
 		}, ","))
-
 		mux.ServeHTTP(w, r)
 	})
 
