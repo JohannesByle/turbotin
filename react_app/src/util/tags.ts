@@ -45,8 +45,11 @@ export const useTags = (): {
     const groups = groupBy(tagLinks, (t) => t.parentTagId);
     const result = new Map<number, Tag[]>();
     for (const link of links) {
-      const arr = new Array<Tag>();
-      result.set(link.tobaccoId, arr);
+      let arr = result.get(link.tobaccoId);
+      if (isUndefined(arr)) {
+        arr = new Array<Tag>();
+        result.set(link.tobaccoId, arr);
+      }
       const tagIds = [
         link.tagId,
         ...(groups[link.tagId]?.map((l) => l.tagId) ?? []),
