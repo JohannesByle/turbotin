@@ -109,7 +109,7 @@ const FullTable = (): JSX.Element => {
 
   const { isDesktop, isMobile } = useScreenSize();
 
-  const visibiltyModel = useMemo(
+  const visibilityModel = useMemo(
     (): GridColumnVisibilityModel => ({
       ...(isMobile ? MOBILE_COLS : DESKTOP_COLS),
       ...fromPairs(cats.map((c) => [String(c.id), visibleTags.has(c.id)])),
@@ -327,7 +327,7 @@ const FullTable = (): JSX.Element => {
           rows={rows}
           loading={isFetching}
           density={"compact"}
-          columnVisibilityModel={visibiltyModel}
+          columnVisibilityModel={visibilityModel}
           filterModel={isMobile ? undefined : deferredFilterModel}
           initialState={INITIAL_STATE}
           getRowId={getRowId}
