@@ -20,11 +20,11 @@ const (
 type Auth struct{}
 
 func (s *Auth) GetCurrentUser(ctx context.Context, req *Request[pb.EmptyArgs]) (*Response[pb.User], error) {
-	user, res, err := GetUser[pb.User](ctx)
+	user, _, err := GetUser[pb.User](ctx)
 	if err != nil {
 		return NewResponse[pb.User](nil), nil
 	}
-	res = NewResponse(&pb.User{})
+	res := NewResponse(&pb.User{})
 	res.Msg.Email = user.Email
 	res.Msg.EmailVerified = user.EmailVerified
 	res.Msg.IsAdmin = user.IsAdmin
@@ -64,7 +64,7 @@ func (s *Auth) SignUp(ctx context.Context, req *Request[pb.AuthArgs]) (*Response
 			return err
 		}
 		subject := "Verify your email for your TurboTin.com account"
-		url := fmt.Sprintf("%s://%s/verify_email/%d/%s", SCHEME, HOST, user.ID, user.EmailCode)
+		url := fmt.Sprintf("https://www.turbotin.com/verify_email/%d/%s", user.ID, user.EmailCode)
 		body := fmt.Sprintf("Please verify your email address using this link: %s", url)
 		return SendEmail(ctx, tx, user, subject, body)
 	})
