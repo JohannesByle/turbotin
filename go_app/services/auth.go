@@ -130,7 +130,7 @@ func (s *Auth) SendPasswordResetCode(ctx context.Context, req *Request[pb.SendRe
 			return err
 		}
 		subject := "Your password reset link for TurboTin.com"
-		url := fmt.Sprintf("%s://%s/change_password/%d/%s", SCHEME, HOST, user.ID, user.PasswordResetCode)
+		url := fmt.Sprintf("https://www.turbotin.com/change_password/%d/%s", user.ID, user.PasswordResetCode)
 		body := fmt.Sprintf("Reset your password here: %s", url)
 		return SendEmail(ctx, tx, user, subject, body)
 
