@@ -99,6 +99,7 @@ export const STORE_TO_NAME: Record<Store, string> = {
   [Store.STORE_CDMCIGARS]: "CDM Cigars",
   [Store.STORE_LJPERETTI]: "L.J. Peretti",
   [Store.STORE_OUTWEST]: "Outwest",
+  [Store.STORE_ARLINGTONCIGAR]: "Arlington Cigar",
 };
 
 export const NAME_TO_STORE = fromPairs(

@@ -50,6 +50,7 @@ enum Store {
   STORE_LJPERETTI = 33;
   STORE_OUTWEST = 34;
   STORE_JUST4HIM = 35;
+  STORE_ARLINGTONCIGAR = 36;
 }
 
 message EmptyResponse {}
