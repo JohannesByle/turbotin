@@ -38,7 +38,7 @@ RUN --mount=type=cache,target=/root/.npm \
 
 ################################################################################
 # Create a stage for building the application.
-FROM --platform=$BUILDPLATFORM golang:1.21 AS build_go
+FROM --platform=$BUILDPLATFORM golang:1.22 AS build_go
 WORKDIR /src
 
 COPY /go_app .

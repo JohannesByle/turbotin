@@ -1,6 +1,6 @@
 module turbotin
 
-go 1.21
+go 1.22.8
 
 require (
 	connectrpc.com/connect v1.14.0
